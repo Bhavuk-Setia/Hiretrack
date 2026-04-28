@@ -221,17 +221,18 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 // ════════════════════════════════════════════════════
 const SB = {
   // SELECT with filters, ordering, pagination
-  async select(table, { select='*', filters=[], order='', limit=1000, offset=0 }={}) {
+  async select(table, { select='*', filters=[], order='', limit=100, offset=0 }={}) {
     let url = `${SB_URL}/rest/v1/${table}?select=${select}`;
     filters.forEach(f => url += `&${f}`);
     if(order)  url += `&order=${order}`;
-    if(limit)  url += `&limit=${limit}`;
+    url += `&limit=${limit}`;
     if(offset) url += `&offset=${offset}`;
     const r = await fetch(url, {
       headers: {
         'apikey': SB_KEY,
         'Authorization': `Bearer ${SB_KEY}`,
         'Range-Unit': 'items',
+        'Range': `${offset}-${offset+limit-1}`,
         'Prefer': 'count=exact'
       }
     });
@@ -274,17 +275,24 @@ const SB = {
 
   // COUNT rows matching filters
   async count(table, filters=[]) {
-    let url = `${SB_URL}/rest/v1/${table}?select=lead_id`;
+    // HEAD + count=exact returns true total without fetching any rows
+    // This bypasses Supabase row limits entirely
+    let url = `${SB_URL}/rest/v1/${table}?select=*`;
     filters.forEach(f => url += `&${f}`);
-    const r = await fetch(url, {
-      headers: {
-        'apikey': SB_KEY,
-        'Authorization': `Bearer ${SB_KEY}`,
-        'Range-Unit': 'items',
-        'Prefer': 'count=exact'
-      }
-    });
-    return parseInt(r.headers.get('content-range')?.split('/')[1]||'0');
+    try {
+      const r = await fetch(url, {
+        method: 'HEAD',
+        headers: {
+          'apikey': SB_KEY,
+          'Authorization': `Bearer ${SB_KEY}`,
+          'Range-Unit': 'items',
+          'Prefer': 'count=exact'
+        }
+      });
+      const cr = r.headers.get('content-range');
+      if(cr && cr.includes('/')) return parseInt(cr.split('/')[1])||0;
+      return 0;
+    } catch(e) { return 0; }
   }
 };
 
@@ -379,14 +387,17 @@ function doLogout(){
 // COUNTS — fast because Supabase counts with SQL
 // ════════════════════════════════════════════════════
 async function loadCounts() {
-  const [total, unassigned, pipeline, myLeads] = await Promise.all([
+  const promises = [
     SB.count('leads'),
     SB.count('leads', ['owner=eq.']),
-    SB.count('leads', ['status=in.(Interested,Shortlisted)']),
-    appRole==='recruiter'
-      ? SB.count('leads', [`owner=eq.${encodeURIComponent(SESSION.name)}`])
-      : Promise.resolve(0)
-  ]);
+    SB.count('leads', ['status=in.(Interested,Shortlisted)'])
+  ];
+  if(appRole==='recruiter') {
+    promises.push(SB.count('leads', [`owner=eq.${encodeURIComponent(SESSION.name)}`]));
+  } else {
+    promises.push(Promise.resolve(0));
+  }
+  const [total, unassigned, pipeline, myLeads] = await Promise.all(promises);
   COUNTS = { total, unassigned, pipeline, myLeads };
 }
 
@@ -459,15 +470,21 @@ function buildFilters() {
 async function loadLeads(offset=0) {
   showLoader();
   const filters = buildFilters();
-  const res = await SB.select('leads', {
-    filters,
-    order: 'create_date.desc',
-    limit: PAGE_SIZE,
-    offset
-  });
+
+  // Run count and data fetch in parallel
+  const [countResult, res] = await Promise.all([
+    SB.count('leads', filters),
+    SB.select('leads', {
+      filters,
+      order: 'create_date.desc',
+      limit: PAGE_SIZE,
+      offset
+    })
+  ]);
+
   if(res.ok) {
     LEADS      = res.data;
-    _pgTotal   = res.total;
+    _pgTotal   = countResult;   // use real count, not capped content-range
     _pgOffset  = offset;
     _pgFilters = filters;
     renderLeadsTable();
