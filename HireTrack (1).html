@@ -7,32 +7,28 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#1a1a2e;background:#f5f6fa}
-
-/* ── LOGIN ── */
-.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1a2e,#16213e)}
 .login-card{background:#fff;border-radius:16px;padding:40px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-.login-logo{font-size:22px;font-weight:700;color:#1a1a2e;margin-bottom:4px}
+.login-logo{font-size:22px;font-weight:700;margin-bottom:4px}
 .login-sub{font-size:13px;color:#888;margin-bottom:28px}
-.login-label{font-size:12px;font-weight:500;color:#555;margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.04em}
-.login-input{width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid #e0e0e0;font-size:14px;margin-bottom:14px;transition:border .15s}
-.login-input:focus{outline:none;border-color:#4361ee}
-.login-btn{width:100%;padding:12px;border-radius:8px;border:none;background:#4361ee;color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s}
-.login-btn:hover{opacity:.88}
-.login-btn:disabled{opacity:.4;cursor:not-allowed}
-.login-err{color:#e63946;font-size:12px;margin-top:8px;text-align:center;min-height:16px}
-
-/* ── APP SHELL ── */
+.lbl{font-size:12px;font-weight:500;color:#555;margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.04em}
+.linput{width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid #e0e0e0;font-size:14px;margin-bottom:14px;font-family:inherit;transition:border .15s}
+.linput:focus{outline:none;border-color:#4361ee}
+.lbtn{width:100%;padding:12px;border-radius:8px;border:none;background:#4361ee;color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.lbtn:hover{opacity:.88}
+.lbtn:disabled{opacity:.4;cursor:not-allowed}
+.lerr{color:#e63946;font-size:12px;margin-top:8px;text-align:center;min-height:16px}
 .app{display:flex;height:100vh;overflow:hidden}
-.sidebar{width:200px;flex-shrink:0;background:#1a1a2e;display:flex;flex-direction:column;color:#fff}
+.sidebar{width:200px;flex-shrink:0;background:#1a1a2e;display:flex;flex-direction:column}
 .sb-top{padding:18px 14px 12px}
-.sb-logo{font-size:15px;font-weight:700;margin-bottom:2px}
+.sb-logo{font-size:15px;font-weight:700;color:#fff;margin-bottom:2px}
 .sb-user{font-size:11px;color:#8892a4}
-.sb-role-badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:3px;margin-top:4px}
-.badge-mgr{background:rgba(67,97,238,.35);color:#a5b4fc}
-.badge-rec{background:rgba(34,197,94,.2);color:#86efac}
-.sb-nav{flex:1;padding:8px 8px;overflow-y:auto}
+.sb-badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:3px;margin-top:4px}
+.bm{background:rgba(67,97,238,.35);color:#a5b4fc}
+.br{background:rgba(34,197,94,.2);color:#86efac}
+.sb-nav{flex:1;padding:8px;overflow-y:auto}
 .nsec{font-size:10px;color:#4a5568;text-transform:uppercase;letter-spacing:.07em;padding:10px 8px 4px}
-.ni{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:#94a3b8;margin-bottom:2px;transition:all .12s}
+.ni{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:#94a3b8;margin-bottom:2px;transition:all .1s;user-select:none}
 .ni:hover{background:rgba(255,255,255,.07);color:#fff}
 .ni.on{background:rgba(67,97,238,.25);color:#fff;font-weight:500}
 .ni-ico{font-size:14px;width:16px;text-align:center;flex-shrink:0}
@@ -41,533 +37,738 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .nb-g{background:rgba(34,197,94,.2);color:#86efac}
 .nb-b{background:rgba(67,97,238,.3);color:#a5b4fc}
 .sb-foot{padding:10px 8px;border-top:1px solid rgba(255,255,255,.07)}
-.sw-wrap{display:flex;background:rgba(255,255,255,.07);border-radius:8px;overflow:hidden}
+.sw-wrap{display:flex;background:rgba(255,255,255,.07);border-radius:8px;overflow:hidden;margin-bottom:8px}
 .sw-tab{flex:1;padding:7px 4px;border:none;cursor:pointer;font-size:11px;font-family:inherit;background:transparent;color:#94a3b8;transition:all .15s;text-align:center}
 .sw-tab.on{background:#4361ee;color:#fff;font-weight:500}
-
-/* ── MAIN ── */
+.logout-btn{width:100%;padding:7px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:transparent;cursor:pointer;font-size:11px;color:#94a3b8;font-family:inherit}
+.logout-btn:hover{background:rgba(255,255,255,.07);color:#fff}
 .main{flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0}
-.topbar{padding:12px 20px;border-bottom:1px solid #e8eaf0;display:flex;align-items:center;gap:10px;background:#fff;flex-shrink:0}
-.pg-title{font-size:15px;font-weight:600;flex:1;color:#1a1a2e}
+.topbar{padding:12px 20px;border-bottom:1px solid #e8eaf0;display:flex;align-items:center;gap:10px;background:#fff;flex-shrink:0;min-height:52px}
+.pg-title{font-size:15px;font-weight:600;flex:1}
 .tba{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.btn{padding:6px 14px;border-radius:8px;border:1.5px solid #e0e0e0;background:#fff;cursor:pointer;font-size:12px;color:#1a1a2e;transition:all .12s;white-space:nowrap;font-family:inherit}
-.btn:hover{background:#f5f6fa;border-color:#c0c4cc}
+.btn{padding:6px 14px;border-radius:8px;border:1.5px solid #e0e0e0;background:#fff;cursor:pointer;font-size:12px;color:#1a1a2e;font-family:inherit;white-space:nowrap;transition:background .1s}
+.btn:hover{background:#f5f6fa}
 .btn.pri{background:#4361ee;color:#fff;border-color:#4361ee}
 .btn.pri:hover{background:#3451d1}
 .btn.warn{border-color:#f59e0b;color:#d97706}
 .btn.warn:hover{background:#fffbeb}
-.btn.danger{border-color:#ef4444;color:#ef4444}
-.btn.danger:hover{background:#fef2f2}
 .btn:disabled{opacity:.35;cursor:not-allowed}
 .content{flex:1;overflow-y:auto;padding:16px 20px;background:#f5f6fa}
-
-/* ── ASSIGN BAR ── */
 .asgbar{flex-shrink:0;padding:10px 20px;background:#fffbeb;border-bottom:1px solid #fde68a;display:none;align-items:center;gap:10px;flex-wrap:wrap}
 .asgbar.on{display:flex}
-.asg-info{font-size:13px;font-weight:600;color:#92400e}
-.asg-select{padding:6px 10px;border-radius:8px;border:1.5px solid #fde68a;background:#fff;font-size:12px;cursor:pointer;font-family:inherit}
-.asg-hint{font-size:11px;color:#b45309}
-
-/* ── LOADER ── */
-.loader-wrap{display:flex;align-items:center;justify-content:center;padding:60px;flex-direction:column;gap:12px}
+.asg-sel{padding:6px 10px;border-radius:8px;border:1.5px solid #fde68a;background:#fff;font-size:12px;cursor:pointer;font-family:inherit}
 .spinner{width:28px;height:28px;border:3px solid #e0e0e0;border-top-color:#4361ee;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+.loader-wrap{display:flex;align-items:center;justify-content:center;height:200px;flex-direction:column;gap:12px}
 .loader-text{font-size:13px;color:#888}
-
-/* ── METRICS ── */
 .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
 .metric{background:#fff;border-radius:12px;padding:14px 16px;border:1px solid #e8eaf0}
-.mv{font-size:22px;font-weight:700;margin-bottom:2px;font-family:monospace}
+.mv{font-size:24px;font-weight:700;font-family:monospace;margin-bottom:2px}
 .ml{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em}
 .mv.blue{color:#4361ee}.mv.green{color:#22c55e}.mv.warn{color:#f59e0b}.mv.red{color:#ef4444}
-
-/* ── CARDS ── */
 .card{background:#fff;border-radius:12px;border:1px solid #e8eaf0;margin-bottom:12px;overflow:hidden}
 .ch{padding:12px 16px;border-bottom:1px solid #e8eaf0;display:flex;align-items:center;gap:8px}
-.ch-t{font-size:13px;font-weight:600;flex:1;color:#1a1a2e}
-
-/* ── FILTER BAR ── */
+.ch-t{font-size:13px;font-weight:600;flex:1}
 .fbar{background:#fff;border-radius:12px;border:1px solid #e8eaf0;padding:12px 14px;margin-bottom:12px}
-.fbar-r{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.fbar-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .fbar-r:last-child{margin-bottom:0}
 .fi{padding:6px 9px;border-radius:8px;border:1.5px solid #e0e0e0;background:#fff;font-size:12px;color:#1a1a2e;font-family:inherit}
 .fi:focus{outline:none;border-color:#4361ee}
-.fi-search{width:200px}
+.fi-search{width:210px}
 .num-wrap{display:inline-flex;align-items:center;gap:4px}
 .num-op{padding:6px 7px;border-radius:8px;border:1.5px solid #e0e0e0;background:#fff;font-size:11px;cursor:pointer;width:90px;font-family:inherit}
-.fi-xs{width:52px;padding:6px 7px;border-radius:8px;border:1.5px solid #e0e0e0;background:#fff;font-size:12px;color:#1a1a2e}
+.fi-xs{width:52px;padding:6px 7px;border-radius:8px;border:1.5px solid #e0e0e0;background:#fff;font-size:12px;color:#1a1a2e;font-family:inherit}
 .fi-xs:focus{outline:none;border-color:#4361ee}
 .ms-wrap{position:relative;display:inline-block}
-.ms-trigger{padding:6px 10px;border-radius:8px;border:1.5px solid #e0e0e0;background:#fff;font-size:12px;color:#1a1a2e;cursor:pointer;white-space:nowrap;min-width:100px;display:flex;align-items:center;justify-content:space-between;gap:6px;user-select:none}
-.ms-trigger.has-sel{border-color:#4361ee;background:#eef2ff;color:#4361ee}
-.ms-trigger svg{width:10px;height:10px;opacity:.5;flex-shrink:0}
-.ms-dd{position:absolute;top:calc(100% + 4px);left:0;min-width:200px;background:#fff;border:1.5px solid #e0e0e0;border-radius:10px;z-index:200;overflow:hidden;display:none;box-shadow:0 8px 24px rgba(0,0,0,.1)}
+.ms-btn{padding:6px 10px;border-radius:8px;border:1.5px solid #e0e0e0;background:#fff;font-size:12px;color:#1a1a2e;cursor:pointer;white-space:nowrap;min-width:100px;display:flex;align-items:center;justify-content:space-between;gap:6px;user-select:none;font-family:inherit}
+.ms-btn.on{border-color:#4361ee;background:#eef2ff;color:#4361ee}
+.ms-dd{position:absolute;top:calc(100% + 4px);left:0;min-width:210px;background:#fff;border:1.5px solid #e0e0e0;border-radius:10px;z-index:200;overflow:hidden;display:none;box-shadow:0 8px 24px rgba(0,0,0,.1)}
 .ms-dd.open{display:block}
-.ms-search{width:100%;padding:8px 10px;border:none;border-bottom:1px solid #f0f0f0;background:#f9f9f9;font-size:12px;color:#1a1a2e;font-family:inherit}
-.ms-search:focus{outline:none}
+.ms-si{width:100%;padding:8px 10px;border:none;border-bottom:1px solid #f0f0f0;font-size:12px;font-family:inherit;background:#f9f9f9}
+.ms-si:focus{outline:none}
 .ms-list{max-height:160px;overflow-y:auto}
-.ms-opt{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;font-size:12px;transition:background .1s}
-.ms-opt:hover{background:#f5f6fa}
-.ms-opt input{width:13px;height:13px;accent-color:#4361ee;cursor:pointer;flex-shrink:0}
+.ms-item{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;font-size:12px}
+.ms-item:hover{background:#f5f6fa}
+.ms-item input{width:13px;height:13px;accent-color:#4361ee;cursor:pointer;flex-shrink:0}
 .ms-foot{padding:6px 10px;border-top:1px solid #f0f0f0;display:flex;justify-content:space-between}
-.ms-foot button{font-size:11px;padding:3px 8px;border-radius:4px;border:none;cursor:pointer;background:transparent;color:#888}
+.ms-foot button{font-size:11px;padding:3px 8px;border-radius:4px;border:none;cursor:pointer;background:transparent;color:#888;font-family:inherit}
 .ms-foot button:hover{background:#f5f6fa}
-
-/* ── TABLE ── */
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
-.tbl th{padding:8px 10px;text-align:left;font-size:11px;font-weight:600;color:#888;border-bottom:1px solid #e8eaf0;white-space:nowrap;background:#fafafa;text-transform:uppercase;letter-spacing:.04em}
+.tbl th{padding:8px 10px;text-align:left;font-size:11px;font-weight:600;color:#888;border-bottom:1px solid #e8eaf0;white-space:nowrap;background:#fafafa;text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0;z-index:1}
 .tbl td{padding:9px 10px;border-bottom:1px solid #f0f1f5;vertical-align:middle}
 .tbl tr:last-child td{border:none}
-.tbl tr:hover td{background:#f9faff}
+.tbl tr:hover td{background:#f9faff;cursor:pointer}
 .tbl tr.sel td{background:#eef2ff}
 .chk{width:13px;height:13px;cursor:pointer;accent-color:#4361ee}
-
-/* ── BADGES ── */
 .badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;white-space:nowrap;font-weight:500}
 .b-new{background:#f1f5f9;color:#64748b}
 .b-con{background:#dbeafe;color:#1d4ed8}
 .b-int{background:#dcfce7;color:#15803d}
 .b-sho{background:#fef3c7;color:#92400e}
 .b-no{background:#fee2e2;color:#b91c1c}
-.owner-pill{display:inline-flex;align-items:center;gap:4px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:2px 8px;font-size:11px}
-.owner-pill.unassigned{border-style:dashed;color:#94a3b8}
-
-/* ── DETAIL ── */
+.opill{display:inline-flex;align-items:center;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:2px 8px;font-size:11px}
+.opill.u{border-style:dashed;color:#94a3b8}
 .detail-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .hero-card{background:#fff;border-radius:12px;border:1px solid #e8eaf0;padding:16px;margin-bottom:12px}
-.hero-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
 .hero-av{width:42px;height:42px;border-radius:50%;background:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#4361ee;flex-shrink:0}
 .hero-name{font-size:15px;font-weight:600;margin-bottom:2px}
 .hero-contact{font-size:12px;color:#888}
 .hero-owner-row{display:flex;align-items:center;gap:8px;padding-top:10px;border-top:1px solid #f0f1f5;font-size:12px;color:#888}
-.field-grid{border:1px solid #e8eaf0;border-radius:10px;overflow:hidden;margin-bottom:12px}
-.field-cell{padding:10px 13px;border-right:1px solid #e8eaf0;border-bottom:1px solid #e8eaf0;background:#fff}
-.field-cell:nth-child(2n){border-right:none}
-.field-cell:nth-last-child(-n+2){border-bottom:none}
-.fc-label{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
-.fc-lbl-text{font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em}
-.fc-edit-btn{font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid #e0e0e0;background:transparent;cursor:pointer;color:#888;transition:all .1s}
-.fc-edit-btn:hover{background:#f5f6fa;color:#1a1a2e}
-.fc-locked{font-size:10px;color:#cbd5e1;font-style:italic}
-.fc-value{font-size:13px;color:#1a1a2e;min-height:18px;line-height:1.4}
-.fc-value.empty{color:#cbd5e1}
-.edit-input{width:100%;padding:4px 8px;border-radius:6px;border:1.5px solid #4361ee;background:#fff;font-size:13px;color:#1a1a2e;font-family:inherit}
-.edit-input:focus{outline:none}
+.fgrid{border:1px solid #e8eaf0;border-radius:10px;overflow:hidden;margin-bottom:12px}
+.fcell{padding:10px 13px;border-right:1px solid #e8eaf0;border-bottom:1px solid #e8eaf0;background:#fff}
+.fcell:nth-child(2n){border-right:none}
+.fcell:nth-last-child(-n+2){border-bottom:none}
+.fclbl{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.fc-lt{font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em}
+.fc-eb{font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid #e0e0e0;background:transparent;cursor:pointer;color:#888;font-family:inherit}
+.fc-eb:hover{background:#f5f6fa}
+.fc-lock{font-size:10px;color:#cbd5e1;font-style:italic}
+.fcval{font-size:13px;min-height:18px;line-height:1.4}
+.fcval.empty{color:#cbd5e1}
+.edit-inp{width:100%;padding:4px 8px;border-radius:6px;border:1.5px solid #4361ee;background:#fff;font-size:13px;font-family:inherit}
+.edit-inp:focus{outline:none}
 .edit-acts{display:flex;gap:4px;margin-top:5px}
-.sec-label{font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;padding:0 2px}
-
-/* ── CALL FORM ── */
+.sec-lbl{font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;padding:0 2px}
 .ff{padding:16px}
 .fr{margin-bottom:11px}
 .fl{font-size:10px;font-weight:600;color:#94a3b8;margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.06em}
-.fi-full{width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid #e0e0e0;background:#fff;font-size:13px;color:#1a1a2e;font-family:inherit;transition:border .15s}
+.fi-full{width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid #e0e0e0;background:#fff;font-size:13px;font-family:inherit;transition:border .15s}
 .fi-full:focus{outline:none;border-color:#4361ee}
 textarea.fi-full{resize:vertical;min-height:64px}
 .fr2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .tl-item{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid #f0f1f5}
 .tl-item:last-child{border:none}
 .tl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
-.tl-dot.blue{background:#4361ee}.tl-dot.gray{background:#cbd5e1}
+.tl-dot.b{background:#4361ee}.tl-dot.g{background:#cbd5e1}
 .tl-body{font-size:12px;color:#64748b;line-height:1.5}
 .tl-time{font-size:11px;color:#94a3b8;font-family:monospace}
-.save-btn-row{margin-top:4px}
-
-/* ── TOAST ── */
 .toast{position:fixed;bottom:24px;right:24px;background:#1a1a2e;color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;z-index:999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast.err{background:#ef4444}
+.pg-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:#f0f4ff;border-radius:8px;margin-bottom:10px;font-size:12px;color:#4361ee}
 </style>
 </head>
 <body>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <!-- LOGIN -->
 <div id="login-screen">
-  <div class="login-wrap">
-    <div class="login-card">
-      <div class="login-logo">HireTrack</div>
-      <div class="login-sub">Hiring pipeline · Sign in to continue</div>
-      <label class="login-label">Email address</label>
-      <input class="login-input" type="email" id="li-email" placeholder="you@agency.com" autocomplete="email">
-      <label class="login-label">Password</label>
-      <input class="login-input" type="password" id="li-pass" placeholder="••••••••" autocomplete="current-password">
-      <button class="login-btn" id="li-btn" onclick="doLogin()">Sign in</button>
-      <div class="login-err" id="li-err"></div>
-    </div>
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">HireTrack</div>
+    <div class="login-sub">Hiring pipeline · Sign in to continue</div>
+    <label class="lbl">Email address</label>
+    <input class="linput" type="email" id="li-email" placeholder="you@agency.com" autocomplete="email">
+    <label class="lbl">Password</label>
+    <input class="linput" type="password" id="li-pass" placeholder="••••••••">
+    <button class="lbtn" id="li-btn" onclick="doLogin()">Sign in</button>
+    <div class="lerr" id="li-err"></div>
   </div>
+</div>
 </div>
 
 <!-- APP -->
 <div id="app-screen" style="display:none">
-  <div class="app">
-    <div class="sidebar">
-      <div class="sb-top">
-        <div class="sb-logo">HireTrack</div>
-        <div class="sb-user" id="sb-name">—</div>
-        <span class="sb-role-badge badge-mgr" id="sb-badge">Manager</span>
-      </div>
-      <div class="sb-nav" id="sb-nav"></div>
-      <div class="sb-foot" id="sb-foot"></div>
+<div class="app">
+  <div class="sidebar">
+    <div class="sb-top">
+      <div class="sb-logo">HireTrack</div>
+      <div class="sb-user" id="sb-name">—</div>
+      <span class="sb-badge bm" id="sb-badge">Manager</span>
     </div>
-    <div class="main">
-      <div class="topbar">
-        <div class="pg-title" id="pg-title">Dashboard</div>
-        <div class="tba" id="tba"></div>
+    <div class="sb-nav" id="sb-nav"></div>
+    <div class="sb-foot">
+      <div class="sw-wrap">
+        <button class="sw-tab on" id="sw-m" onclick="setRole('manager')">Manager</button>
+        <button class="sw-tab" id="sw-r" onclick="setRole('recruiter')">Recruiter</button>
       </div>
-      <div class="asgbar" id="asgbar">
-        <span class="asg-info" id="asg-info">0 leads selected</span>
-        <select class="asg-select" id="asg-rec" onchange="updateAsgBar()">
-          <option value="">— pick recruiter —</option>
-          <option value="__rr__">Round-robin (auto)</option>
-          <option value="__none__">Unassign</option>
-        </select>
-        <button class="btn pri" id="asg-btn" onclick="doAssign()" disabled>Confirm</button>
-        <button class="btn" onclick="clearSel()">Cancel</button>
-        <span class="asg-hint" id="asg-hint"></span>
-      </div>
-      <div class="content" id="content"></div>
+      <button class="logout-btn" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div class="pg-title" id="pg-title">Dashboard</div>
+      <div class="tba" id="tba"></div>
+    </div>
+    <div class="asgbar" id="asgbar">
+      <span style="font-size:13px;font-weight:600;color:#92400e" id="asg-info">0 selected</span>
+      <select class="asg-sel" id="asg-rec" onchange="updateAsgBar()">
+        <option value="">— pick recruiter —</option>
+        <option value="__rr__">Round-robin (auto)</option>
+        <option value="__none__">Unassign</option>
+      </select>
+      <button class="btn pri" id="asg-btn" onclick="doAssign()" disabled>Confirm</button>
+      <button class="btn" onclick="clearSel()">Cancel</button>
+      <span style="font-size:11px;color:#b45309" id="asg-hint"></span>
+    </div>
+    <div class="content" id="content">
+      <div class="loader-wrap"><div class="spinner"></div><div class="loader-text">Loading…</div></div>
     </div>
   </div>
 </div>
+</div>
 
 <script>
-// ═══════════════════════════════════════════════════════
-// CONFIGURATION — paste your Apps Script URL here
-// ═══════════════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw85s4DCTxL3uIxsb1AcgL-iMqfO2ucklCELUfSDyte7SOIxbHapGMwykH-l_SKmfs2nA/exec';
+// ════════════════════════════════════════════════════
+// CONFIG — paste your Supabase project URL and anon key
+// ════════════════════════════════════════════════════
+const SB_URL = 'https://esgyriktdmlqnestbysl.supabase.co/rest/v1/';       // e.g. https://xxxx.supabase.co
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZ3lyaWt0ZG1scW5lc3RieXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODAxODksImV4cCI6MjA5Mjk1NjE4OX0.BP8wrpjLhTNuUfmzWIiklaOVeV9Fzm97Xo2gW9vmrT8';  // long string from Settings → API
 
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════
+// SUPABASE API WRAPPER
+// Direct REST calls — no SDK needed
+// ════════════════════════════════════════════════════
+const SB = {
+  // SELECT with filters, ordering, pagination
+  async select(table, { select='*', filters=[], order='', limit=1000, offset=0 }={}) {
+    let url = `${SB_URL}/rest/v1/${table}?select=${select}`;
+    filters.forEach(f => url += `&${f}`);
+    if(order)  url += `&order=${order}`;
+    if(limit)  url += `&limit=${limit}`;
+    if(offset) url += `&offset=${offset}`;
+    const r = await fetch(url, {
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
+        'Range-Unit': 'items',
+        'Prefer': 'count=exact'
+      }
+    });
+    const data = await r.json();
+    const total = parseInt(r.headers.get('content-range')?.split('/')[1]||'0');
+    return { data: Array.isArray(data)?data:[], total, ok: r.ok };
+  },
+
+  // INSERT one or many rows
+  async insert(table, rows) {
+    const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(Array.isArray(rows)?rows:[rows])
+    });
+    return { ok: r.ok, status: r.status };
+  },
+
+  // UPDATE rows matching filters
+  async update(table, data, filters=[]) {
+    let url = `${SB_URL}/rest/v1/${table}?`;
+    filters.forEach(f => url += `${f}&`);
+    const r = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(data)
+    });
+    return { ok: r.ok, status: r.status };
+  },
+
+  // COUNT rows matching filters
+  async count(table, filters=[]) {
+    let url = `${SB_URL}/rest/v1/${table}?select=lead_id`;
+    filters.forEach(f => url += `&${f}`);
+    const r = await fetch(url, {
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
+        'Range-Unit': 'items',
+        'Prefer': 'count=exact'
+      }
+    });
+    return parseInt(r.headers.get('content-range')?.split('/')[1]||'0');
+  }
+};
+
+// ════════════════════════════════════════════════════
 // APP STATE
-// ═══════════════════════════════════════════════════════
-let SESSION   = null;   // { name, email, role }
-let LEADS     = [];     // loaded from sheet
-let CALL_LOGS = {};     // lead_id → array of log entries
-let appRole   = 'manager';
-let page      = 'dashboard';
-let prevPage  = 'dashboard';
-let selLeads  = new Set();
-let activeLead = null;
+// ════════════════════════════════════════════════════
+let SESSION    = null;
+let LEADS      = [];       // current page of leads
 let RECRUITERS = [];
+let COUNTS     = {};       // { total, unassigned, myLeads, pipeline }
+let appRole    = 'manager';
+let page       = 'dashboard';
+let prevPage   = 'dashboard';
+let selLeads   = new Set();
+let activeLead = null;
 
-let F = {q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],
-         ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
-let _curLeads=[],_curTitle='',_curAssignMode=false;
+// Pagination state
+const PAGE_SIZE = 100;    // rows per page — instant load from Supabase
+let _pgOffset   = 0;
+let _pgTotal    = 0;
+let _pgFilters  = [];     // active Supabase filter strings
+let _pgTitle    = '';
+let _pgAssign   = false;
 
-const STATUSES=['New','Contacted','Interested','Shortlisted','Submitted to Client',
-                'Not Interested','Not Reachable','On Hold'];
+const STATUSES=['New','Contacted','Interested','Shortlisted',
+  'Submitted to Client','Not Interested','Not Reachable','On Hold'];
 const SC={New:'b-new',Contacted:'b-con',Interested:'b-int',Shortlisted:'b-sho',
-          'Not Interested':'b-no','Not Reachable':'b-no','On Hold':'b-new',
-          'Submitted to Client':'b-sho',Placed:'b-int'};
-const MGR_ONLY   = ['full_name','phone_primary','email'];
-const REC_EDIT   = ['current_city','current_company','standard_role','naukri_job_title',
-                    'current_designation','department','industry','experience_yrs',
-                    'current_ctc_lpa','shortlisted_for'];
+  'Not Interested':'b-no','Not Reachable':'b-no','On Hold':'b-new',
+  'Submitted to Client':'b-sho',Placed:'b-int'};
+const MGR_ONLY = ['full_name','phone_primary','email'];
+const REC_EDIT = ['current_city','current_company','standard_role','naukri_job_title',
+  'current_designation','department','industry','experience_yrs',
+  'current_ctc_lpa','shortlisted_for'];
 
-// ═══════════════════════════════════════════════════════
-// API CALLS
-// ═══════════════════════════════════════════════════════
-async function api(action, body={}) {
-  return apiWithTimeout(action, body, 30000);
-}
+// Filter UI state
+let F = {
+  q:'', roles:[], statuses:[], cities:[], industries:[],
+  depts:[], sources:[], owners:[],
+  ctc_op:'between', ctc_a:'', ctc_b:'',
+  exp_op:'between', exp_a:'', exp_b:''
+};
 
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════
 // LOGIN
-// ═══════════════════════════════════════════════════════
-document.getElementById('li-pass').addEventListener('keydown', e => {
-  if(e.key === 'Enter') doLogin();
-});
+// ════════════════════════════════════════════════════
+document.getElementById('li-pass')
+  .addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 
 async function doLogin() {
   const email = document.getElementById('li-email').value.trim();
   const pass  = document.getElementById('li-pass').value.trim();
   const btn   = document.getElementById('li-btn');
   const err   = document.getElementById('li-err');
+  if(!email||!pass){ err.textContent='Please enter email and password.'; return; }
+  btn.disabled=true; btn.textContent='Signing in…'; err.textContent='';
 
-  if(!email || !pass){ err.textContent = 'Please enter email and password.'; return; }
+  const res = await SB.select('users', {
+    filters: [
+      `email=eq.${encodeURIComponent(email)}`,
+      `password=eq.${encodeURIComponent(pass)}`
+    ],
+    limit: 1
+  });
 
-  btn.disabled = true;
-  btn.textContent = 'Signing in…';
-  err.textContent = '';
-
-  const res = await api('login', { email, password: pass });
-
-  if(res.ok) {
-    SESSION  = { name: res.name, email: res.email, role: res.role };
-    appRole  = res.role;
+  if(res.ok && res.data.length > 0) {
+    const u = res.data[0];
+    SESSION  = { name: u.name, email: u.email, role: u.role };
+    appRole  = u.role;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-screen').style.display   = 'block';
-    await loadLeads();
+    await loadCounts();
+    await loadRecruiters();
     render();
   } else {
-    err.textContent = res.error || 'Login failed.';
-    btn.disabled = false;
-    btn.textContent = 'Sign in';
+    err.textContent = 'Incorrect email or password.';
+    btn.disabled=false; btn.textContent='Sign in';
   }
 }
 
-// ═══════════════════════════════════════════════════════
-// LOAD DATA FROM SHEET
-// ═══════════════════════════════════════════════════════
-let PAGINATION = { page:1, pageSize:1000, total:0, totalPages:1, loading:false };
+function doLogout(){
+  SESSION=null; LEADS=[]; COUNTS={}; appRole='manager'; page='dashboard';
+  document.getElementById('app-screen').style.display  = 'none';
+  document.getElementById('login-screen').style.display = 'block';
+  document.getElementById('li-email').value='';
+  document.getElementById('li-pass').value='';
+  document.getElementById('li-btn').disabled=false;
+  document.getElementById('li-btn').textContent='Sign in';
+  document.getElementById('li-err').textContent='';
+}
 
-async function loadLeads(page=1, append=false) {
-  if (PAGINATION.loading) return;
-  PAGINATION.loading = true;
+// ════════════════════════════════════════════════════
+// COUNTS — fast because Supabase counts with SQL
+// ════════════════════════════════════════════════════
+async function loadCounts() {
+  const [total, unassigned, pipeline, myLeads] = await Promise.all([
+    SB.count('leads'),
+    SB.count('leads', ['owner=eq.']),
+    SB.count('leads', ['status=in.(Interested,Shortlisted)']),
+    appRole==='recruiter'
+      ? SB.count('leads', [`owner=eq.${encodeURIComponent(SESSION.name)}`])
+      : Promise.resolve(0)
+  ]);
+  COUNTS = { total, unassigned, pipeline, myLeads };
+}
 
-  if (!append) {
-    showLoader('Loading leads… page ' + page);
-    LEADS = [];
+async function loadRecruiters() {
+  const res = await SB.select('users', {
+    select: 'name',
+    filters: ['role=eq.recruiter'],
+    limit: 50
+  });
+  if(res.ok) {
+    RECRUITERS = res.data.map(u => u.name);
+    rebuildAsgDrop();
+  }
+}
+
+// ════════════════════════════════════════════════════
+// LOAD LEADS — server-side filtering, instant response
+// ════════════════════════════════════════════════════
+function buildFilters() {
+  const filters = [];
+
+  // Page-level filters
+  if(page === 'assign')    filters.push('owner=eq.');
+  if(page === 'my-leads' || page === 'followups')
+    filters.push(`owner=eq.${encodeURIComponent(SESSION.name)}`);
+  if(page === 'followups') filters.push('followup_date=not.is.null');
+
+  // UI filters
+  if(F.q) {
+    // Full text search across name, phone, city
+    filters.push(`or=(full_name.ilike.*${encodeURIComponent(F.q)}*,phone_primary.ilike.*${encodeURIComponent(F.q)}*,current_city.ilike.*${encodeURIComponent(F.q)}*)`);
+  }
+  if(F.roles.length)     filters.push(`standard_role=in.(${F.roles.map(encodeURIComponent).join(',')})`);
+  if(F.statuses.length)  filters.push(`status=in.(${F.statuses.map(encodeURIComponent).join(',')})`);
+  if(F.cities.length)    filters.push(`current_city=in.(${F.cities.map(encodeURIComponent).join(',')})`);
+  if(F.industries.length)filters.push(`industry=in.(${F.industries.map(encodeURIComponent).join(',')})`);
+  if(F.depts.length)     filters.push(`department=in.(${F.depts.map(encodeURIComponent).join(',')})`);
+  if(F.sources.length)   filters.push(`source_channel=in.(${F.sources.map(encodeURIComponent).join(',')})`);
+  if(F.owners.length) {
+    const ownerFilters = F.owners.map(o =>
+      o==='Unassigned' ? 'owner=eq.' : `owner=eq.${encodeURIComponent(o)}`
+    );
+    if(ownerFilters.length===1) filters.push(ownerFilters[0]);
+    else filters.push(`or=(${ownerFilters.join(',')})`);
   }
 
-  const params = appRole === 'manager'
-    ? { owner: 'ALL',         page, pageSize: PAGINATION.pageSize }
-    : { owner: SESSION.name,  page, pageSize: PAGINATION.pageSize };
-
-  const res = await api('getLeads', params);
-
-  if (res.ok) {
-    if (append) {
-      LEADS = LEADS.concat(res.leads);
+  // Numeric filters
+  if(F.ctc_a!==''||F.ctc_b!=='') {
+    if(F.ctc_op==='between'){
+      if(F.ctc_a!=='') filters.push(`current_ctc_lpa=gte.${F.ctc_a}`);
+      if(F.ctc_b!=='') filters.push(`current_ctc_lpa=lte.${F.ctc_b}`);
     } else {
-      LEADS = res.leads;
+      const op={'>':'gt','>=':'gte','<':'lt','<=':'lte','=':'eq'}[F.ctc_op]||'eq';
+      if(F.ctc_a!=='') filters.push(`current_ctc_lpa=${op}.${F.ctc_a}`);
     }
-
-    PAGINATION.page       = res.page;
-    PAGINATION.total      = res.total;
-    PAGINATION.totalPages = res.totalPages;
-
-    // Rebuild recruiter list from loaded leads
-    const ownerSet = new Set(LEADS.map(l => l.owner).filter(Boolean));
-    RECRUITERS = [...ownerSet];
-    rebuildAssignDropdown();
-
-    // If there are more pages, load them in background automatically
-    if (res.page < res.totalPages) {
-      PAGINATION.loading = false;
-      loadMoreInBackground(res.page + 1);
+  }
+  if(F.exp_a!==''||F.exp_b!=='') {
+    if(F.exp_op==='between'){
+      if(F.exp_a!=='') filters.push(`experience_yrs=gte.${F.exp_a}`);
+      if(F.exp_b!=='') filters.push(`experience_yrs=lte.${F.exp_b}`);
     } else {
-      PAGINATION.loading = false;
+      const op={'>':'gt','>=':'gte','<':'lt','<=':'lte','=':'eq'}[F.exp_op]||'eq';
+      if(F.exp_a!=='') filters.push(`experience_yrs=${op}.${F.exp_a}`);
     }
+  }
 
+  return filters;
+}
+
+async function loadLeads(offset=0) {
+  showLoader();
+  const filters = buildFilters();
+  const res = await SB.select('leads', {
+    filters,
+    order: 'create_date.desc',
+    limit: PAGE_SIZE,
+    offset
+  });
+  if(res.ok) {
+    LEADS      = res.data;
+    _pgTotal   = res.total;
+    _pgOffset  = offset;
+    _pgFilters = filters;
+    renderLeadsTable();
   } else {
-    PAGINATION.loading = false;
-    toast('Could not load leads: ' + (res.error || 'Unknown error'), true);
+    toast('Error loading leads', true);
+    hideLoader();
   }
 }
 
-// Loads remaining pages silently in background — user can work while this runs
-async function loadMoreInBackground(startPage) {
-  for (let p = startPage; p <= PAGINATION.totalPages; p++) {
-    if (PAGINATION.loading) break; // stop if a manual refresh was triggered
-    await loadLeads(p, true);      // append each page to LEADS array
-    updateLeadCount();             // update sidebar badge and any open table
-    await sleep(300);              // small pause between calls to avoid rate limits
-  }
+// ════════════════════════════════════════════════════
+// LEADS TABLE
+// ════════════════════════════════════════════════════
+let _debounceTimer;
+function debounce(fn, ms=400) {
+  clearTimeout(_debounceTimer);
+  _debounceTimer = setTimeout(fn, ms);
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function renderLeadsPage(title, assignMode=false) {
+  _pgTitle  = title;
+  _pgAssign = assignMode;
+  document.getElementById('pg-title').textContent = title;
+  document.getElementById('tba').innerHTML =
+    `<button class="btn" onclick="reloadLeads()">↻ Refresh</button>`;
+  selLeads = new Set();
+  updateAsgBar();
 
-// Updates the lead count badge in sidebar without full re-render
-function updateLeadCount() {
-  const badge = document.querySelector('.ni .nb-b');
-  if (badge) badge.textContent = LEADS.length;
-  // If a leads table is open, refresh the row count display
-  const rc = document.getElementById('res-count');
-  if (rc) {
-    const filtered = applyFilters(_curLeads === LEADS ? LEADS : _curLeads);
-    rc.textContent = filtered.length + ' of ' + _curLeads.length + ' shown';
-  }
-}
+  const showOwner = appRole==='manager';
 
-async function refreshLeads() {
-  PAGINATION.loading = false; // cancel any background loading
-  PAGINATION.page = 1;
-  LEADS = [];
-  await loadLeads(1, false);
-  renderCurrentPage();
-  toast('Leads refreshed — loading all ' + PAGINATION.total + ' records');
-}
-
-function rebuildAssignDropdown() {
-  const sel = document.getElementById('asg-rec');
-  if (!sel) return;
-  // Remove recruiter options (keep first 3: blank, round-robin, unassign)
-  while (sel.options.length > 3) sel.remove(3);
-  RECRUITERS.forEach(r => {
-    const o = document.createElement('option');
-    o.value = r; o.text = r;
-    sel.add(o, 2);
-  });
-}
-
-
-// ═══════════════════════════════════════════════════════
-// TOAST
-// ═══════════════════════════════════════════════════════
-let _toastTimer;
-function toast(msg, isErr=false) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (isErr?' err':'');
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(()=>t.classList.remove('show'), 3000);
-}
-
-function showLoader(msg='Loading…') {
-  document.getElementById('content').innerHTML =
-    `<div class="loader-wrap"><div class="spinner"></div><div class="loader-text">${msg}</div></div>`;
-}
-
-// ═══════════════════════════════════════════════════════
-// MULTI-SELECT DROPDOWNS
-// ═══════════════════════════════════════════════════════
-function getMSArr(id){return{roles:F.roles,statuses:F.statuses,cities:F.cities,
-  industries:F.industries,depts:F.depts,sources:F.sources,owners:F.owners}[id]||[];}
-function msHTML(id,lbl,opts,sel){
-  const n=sel.length,has=n>0;
-  return`<div class="ms-wrap" id="msw-${id}"><div class="ms-trigger${has?' has-sel':''}" onclick="toggleMS('${id}')">
-  <span id="mst-${id}">${has?lbl+' ('+n+')':lbl}</span>
-  <svg viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4"/></svg>
-  </div><div class="ms-dd" id="msd-${id}">
-  <input class="ms-search" placeholder="Search..." autocomplete="off" oninput="msFilter('${id}',this.value)">
-  <div class="ms-list" id="msl-${id}">${msOpts(id,opts,sel)}</div>
-  <div class="ms-foot"><button onclick="msClear('${id}')">Clear</button><button onclick="msClose('${id}')">Done</button></div>
-  </div></div>`;}
-function msOpts(id,opts,sel){return opts.map(o=>`<label class="ms-opt"><input type="checkbox" ${sel.includes(o)?'checked':''} onchange="msToggle('${id}','${o.replace(/'/g,"\\'")}')"><span>${o}</span></label>`).join('');}
-function toggleMS(id){document.querySelectorAll('.ms-dd.open').forEach(d=>{if(d.id!=='msd-'+id)d.classList.remove('open');});document.getElementById('msd-'+id).classList.toggle('open');}
-function msClose(id){document.getElementById('msd-'+id).classList.remove('open');}
-function msClear(id){getMSArr(id).length=0;document.querySelectorAll(`#msl-${id} input`).forEach(c=>c.checked=false);msRT(id);applyAndRefresh();}
-function msToggle(id,val){const arr=getMSArr(id);const i=arr.indexOf(val);if(i>=0)arr.splice(i,1);else arr.push(val);msRT(id);applyAndRefresh();}
-function msFilter(id,q){
-  const ALL_ROLES=[...new Set(LEADS.map(l=>l.standard_role))].sort();
-  const ALL_CITIES=[...new Set(LEADS.map(l=>l.current_city))].sort();
-  const ALL_INDS=[...new Set(LEADS.map(l=>l.industry))].sort();
-  const ALL_DEPTS=[...new Set(LEADS.map(l=>l.department))].sort();
-  const ALL_SOURCES=[...new Set(LEADS.map(l=>l.source_channel))].sort();
-  const ALL_OWNERS=['Unassigned',...RECRUITERS];
-  const OPTS={roles:ALL_ROLES,statuses:STATUSES,cities:ALL_CITIES,industries:ALL_INDS,depts:ALL_DEPTS,sources:ALL_SOURCES,owners:ALL_OWNERS};
-  const f=q?OPTS[id].filter(o=>o.toLowerCase().includes(q.toLowerCase())):OPTS[id];
-  const list=document.getElementById('msl-'+id);if(list)list.innerHTML=msOpts(id,f,getMSArr(id));
-}
-function msRT(id){
-  const LABELS={roles:'Standard Role',statuses:'Status',cities:'City',industries:'Industry',depts:'Department',sources:'Source',owners:'Owner'};
-  const arr=getMSArr(id);const n=arr.length;
-  const t=document.getElementById('mst-'+id);if(t)t.textContent=n>0?LABELS[id]+' ('+n+')':LABELS[id];
-  const w=document.querySelector(`#msw-${id} .ms-trigger`);if(w)w.className='ms-trigger'+(n>0?' has-sel':'');
-}
-document.addEventListener('click',e=>{if(!e.target.closest('.ms-wrap'))document.querySelectorAll('.ms-dd.open').forEach(d=>d.classList.remove('open'));});
-
-// ═══════════════════════════════════════════════════════
-// FILTERS
-// ═══════════════════════════════════════════════════════
-function applyFilters(leads){
-  return leads.filter(l=>{
-    if(F.q){const q=F.q.toLowerCase();if(!l.full_name.toLowerCase().includes(q)&&!l.phone_primary.includes(q)&&!(l.email||'').toLowerCase().includes(q)&&!l.current_city.toLowerCase().includes(q))return false;}
-    if(F.roles.length&&!F.roles.includes(l.standard_role))return false;
-    if(F.statuses.length&&!F.statuses.includes(l.status))return false;
-    if(F.cities.length&&!F.cities.includes(l.current_city))return false;
-    if(F.industries.length&&!F.industries.includes(l.industry))return false;
-    if(F.depts.length&&!F.depts.includes(l.department))return false;
-    if(F.sources.length&&!F.sources.includes(l.source_channel))return false;
-    if(F.owners.length){const own=l.owner||'Unassigned';if(!F.owners.includes(own))return false;}
-    if(!numF(parseFloat(l.current_ctc_lpa),F.ctc_op,F.ctc_a,F.ctc_b))return false;
-    if(!numF(parseFloat(l.experience_yrs),F.exp_op,F.exp_a,F.exp_b))return false;
-    return true;
-  });
-}
-function numF(v,op,a,b){if(a===''&&b==='')return true;if(isNaN(v))return true;if(op==='between'){const mn=a===''?-Infinity:parseFloat(a);const mx=b===''?Infinity:parseFloat(b);return v>=mn&&v<=mx;}const n=parseFloat(a);if(isNaN(n))return true;return op==='='?v===n:op==='!='?v!==n:op==='<'?v<n:op==='<='?v<=n:op==='>'?v>n:op==='>='?v>=n:true;}
-function resetFilters(){F={q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};renderLeadsPage(_curLeads,_curTitle,_curAssignMode);}
-function applyAndRefresh(){
-  const tbody=document.getElementById('leads-tbody');if(!tbody)return;
-  const filtered=applyFilters(_curLeads);
-  const rc=document.getElementById('res-count');if(rc)rc.textContent=filtered.length+' of '+_curLeads.length+' shown';
-  renderRows(filtered);
-  ['roles','statuses','cities','industries','depts','sources','owners'].forEach(id=>msRT(id));
-}
-
-function fbarHTML(leads,showOwner){
-  const ALL_ROLES=[...new Set(leads.map(l=>l.standard_role))].sort();
-  const ALL_CITIES=[...new Set(leads.map(l=>l.current_city))].sort();
-  const ALL_INDS=[...new Set(leads.map(l=>l.industry))].sort();
-  const ALL_DEPTS=[...new Set(leads.map(l=>l.department))].sort();
-  const ALL_SOURCES=[...new Set(leads.map(l=>l.source_channel))].sort();
-  const ALL_OWNERS=['Unassigned',...RECRUITERS];
-  const filtered=applyFilters(leads);
-  return`<div class="fbar"><div class="fbar-r">
-    <input class="fi fi-search" id="main-search" placeholder="Search name, phone, email, city..." value="${F.q}" autocomplete="off" oninput="F.q=this.value;applyAndRefresh()">
-    ${msHTML('roles','Standard Role',ALL_ROLES,F.roles)}
-    ${msHTML('statuses','Status',STATUSES,F.statuses)}
-    ${msHTML('cities','City',ALL_CITIES,F.cities)}
-    ${msHTML('industries','Industry',ALL_INDS,F.industries)}
-    ${msHTML('depts','Department',ALL_DEPTS,F.depts)}
-    ${msHTML('sources','Source',ALL_SOURCES,F.sources)}
-    ${showOwner?msHTML('owners','Owner',ALL_OWNERS,F.owners):''}
+  document.getElementById('content').innerHTML = `
+  <div class="fbar">
+    <div class="fbar-r">
+      <input class="fi fi-search" id="main-search" placeholder="Search name, phone, city…"
+        value="${F.q}" autocomplete="off"
+        oninput="F.q=this.value;debounce(()=>loadLeads(0))">
+      ${msHTML('roles')}${msHTML('statuses')}${msHTML('cities')}
+      ${msHTML('industries')}${msHTML('depts')}${msHTML('sources')}
+      ${showOwner?msHTML('owners'):''}
+    </div>
+    <div class="fbar-r">
+      <span style="font-size:11px;font-weight:600;color:#888">CTC (LPA)</span>
+      <div class="num-wrap">
+        <select class="num-op" id="ctc-op" onchange="F.ctc_op=this.value;loadLeads(0)">
+          ${numOpts(F.ctc_op)}
+        </select>
+        <input class="fi-xs" type="number" placeholder="min" value="${F.ctc_a}"
+          oninput="F.ctc_a=this.value;debounce(()=>loadLeads(0))">
+        ${F.ctc_op==='between'?`<span style="font-size:11px;color:#aaa">to</span>
+          <input class="fi-xs" type="number" placeholder="max" value="${F.ctc_b}"
+            oninput="F.ctc_b=this.value;debounce(()=>loadLeads(0))">`:``}
+      </div>
+      <span style="font-size:11px;font-weight:600;color:#888;margin-left:8px">Exp (yrs)</span>
+      <div class="num-wrap">
+        <select class="num-op" id="exp-op" onchange="F.exp_op=this.value;loadLeads(0)">
+          ${numOpts(F.exp_op)}
+        </select>
+        <input class="fi-xs" type="number" placeholder="min" value="${F.exp_a}"
+          oninput="F.exp_a=this.value;debounce(()=>loadLeads(0))">
+        ${F.exp_op==='between'?`<span style="font-size:11px;color:#aaa">to</span>
+          <input class="fi-xs" type="number" placeholder="max" value="${F.exp_b}"
+            oninput="F.exp_b=this.value;debounce(()=>loadLeads(0))">`:``}
+      </div>
+      <button class="btn" style="font-size:11px;margin-left:auto" onclick="resetF()">Clear all</button>
+    </div>
   </div>
-  <div class="fbar-r" style="align-items:center">
-    <span style="font-size:11px;font-weight:600;color:#888">CTC (LPA)</span>
-    <div class="num-wrap"><select class="num-op" onchange="F.ctc_op=this.value;renderLeadsPage(_curLeads,_curTitle,_curAssignMode)"><option value="between"${F.ctc_op==='between'?' selected':''}>— between</option><option value="="${F.ctc_op==='='?' selected':''}">= equal</option><option value="<"${F.ctc_op==='<'?' selected':''}>< less</option><option value="<="${F.ctc_op==='<='?' selected':''}>≤ less/eq</option><option value=">"${F.ctc_op==='>'?' selected':''}>&#62; greater</option><option value=">="${F.ctc_op==='>='?' selected':''}>≥ greater/eq</option></select>
-    <input class="fi-xs" type="number" placeholder="min" value="${F.ctc_a}" oninput="F.ctc_a=this.value;applyAndRefresh()">
-    ${F.ctc_op==='between'?`<span style="font-size:11px;color:#aaa">to</span><input class="fi-xs" type="number" placeholder="max" value="${F.ctc_b}" oninput="F.ctc_b=this.value;applyAndRefresh()">`:``}</div>
-    <span style="font-size:11px;font-weight:600;color:#888;margin-left:10px">Exp (yrs)</span>
-    <div class="num-wrap"><select class="num-op" onchange="F.exp_op=this.value;renderLeadsPage(_curLeads,_curTitle,_curAssignMode)"><option value="between"${F.exp_op==='between'?' selected':''}>— between</option><option value="="${F.exp_op==='='?' selected':''}">= equal</option><option value="<"${F.exp_op==='<'?' selected':''}>< less</option><option value="<="${F.exp_op==='<='?' selected':''}>≤ less/eq</option><option value=">"${F.exp_op==='>'?' selected':''}>&#62; greater</option><option value=">="${F.exp_op==='>='?' selected':''}>≥ greater/eq</option></select>
-    <input class="fi-xs" type="number" placeholder="min" value="${F.exp_a}" oninput="F.exp_a=this.value;applyAndRefresh()">
-    ${F.exp_op==='between'?`<span style="font-size:11px;color:#aaa">to</span><input class="fi-xs" type="number" placeholder="max" value="${F.exp_b}" oninput="F.exp_b=this.value;applyAndRefresh()">`:``}</div>
-    <span style="font-size:11px;font-family:monospace;color:#888;margin-left:auto" id="res-count">${filtered.length} of ${leads.length} shown</span>
-    <button class="btn" style="font-size:11px" onclick="resetFilters()">Clear all</button>
+  ${assignMode?`<div style="padding:4px 0 8px;font-size:12px;color:#888">Tick leads, then use the bar above to assign, reassign, or unassign.</div>`:''}
+  <div class="card"><div style="overflow-x:auto">
+    <table class="tbl" id="leads-tbl">
+      <thead><tr>
+        <th><input type="checkbox" class="chk" id="chk-all" onchange="selAll(this)"></th>
+        <th>Name</th><th>Standard Role</th><th>Naukri Title</th><th>Industry</th>
+        <th>Current Role</th><th>Dept</th><th>City</th><th>Exp</th><th>CTC</th>
+        <th>Status</th><th>Owner</th><th>Source</th><th>Created</th>
+      </tr></thead>
+      <tbody id="leads-tbody">
+        <tr><td colspan="14" style="padding:32px;text-align:center">
+          <div class="spinner" style="margin:0 auto"></div>
+        </td></tr>
+      </tbody>
+    </table>
+  </div></div>
+  <div id="pagination-row"></div>`;
+
+  loadLeads(0);
+}
+
+function renderLeadsTable() {
+  const tbody = document.getElementById('leads-tbody');
+  if(!tbody) return;
+
+  if(!LEADS.length) {
+    tbody.innerHTML=`<tr><td colspan="14" style="padding:32px;text-align:center;color:#aaa;font-size:13px">No leads match the filters</td></tr>`;
+    renderPagination();
+    return;
+  }
+
+  tbody.innerHTML = LEADS.map(l => `
+  <tr id="row-${l.lead_id}" class="${selLeads.has(l.lead_id)?'sel':''}">
+    <td onclick="event.stopPropagation()">
+      <input type="checkbox" class="chk row-chk" id="chk-${l.lead_id}"
+        ${selLeads.has(l.lead_id)?'checked':''} onchange="toggleSel('${l.lead_id}')">
+    </td>
+    <td onclick="navD('${l.lead_id}')">
+      <span style="font-weight:600;white-space:nowrap">${l.full_name}</span><br>
+      <span style="font-size:10px;color:#94a3b8;font-family:monospace">${l.phone_primary}</span>
+    </td>
+    <td onclick="navD('${l.lead_id}')" style="font-size:11px;max-width:120px">${l.standard_role||'—'}</td>
+    <td onclick="navD('${l.lead_id}')" style="font-size:11px;color:#888">${l.naukri_job_title||'—'}</td>
+    <td onclick="navD('${l.lead_id}')" style="font-size:11px">${l.industry||'—'}</td>
+    <td onclick="navD('${l.lead_id}')" style="font-size:11px">${l.current_designation||'—'}</td>
+    <td onclick="navD('${l.lead_id}')" style="font-size:11px">${l.department||'—'}</td>
+    <td onclick="navD('${l.lead_id}')">${l.current_city||'—'}</td>
+    <td onclick="navD('${l.lead_id}')" style="font-family:monospace;font-size:11px">${l.experience_yrs||'—'}</td>
+    <td onclick="navD('${l.lead_id}')" style="font-family:monospace;font-size:11px">${l.current_ctc_lpa||'—'}</td>
+    <td onclick="navD('${l.lead_id}')"><span class="badge ${SC[l.status]||'b-new'}">${l.status}</span></td>
+    <td onclick="navD('${l.lead_id}')"><span class="${l.owner?'opill':'opill u'}">${l.owner||'Unassigned'}</span></td>
+    <td onclick="navD('${l.lead_id}')" style="font-size:11px;color:#888">${l.source_channel||'—'}</td>
+    <td onclick="navD('${l.lead_id}')" style="font-size:11px;color:#94a3b8;font-family:monospace">${l.create_date||'—'}</td>
+  </tr>`).join('');
+
+  renderPagination();
+}
+
+function renderPagination() {
+  const row = document.getElementById('pagination-row');
+  if(!row) return;
+  const totalPages = Math.ceil(_pgTotal / PAGE_SIZE);
+  const curPage    = Math.floor(_pgOffset / PAGE_SIZE) + 1;
+  if(totalPages <= 1) { row.innerHTML=''; return; }
+  row.innerHTML = `
+  <div style="display:flex;align-items:center;gap:8px;padding:8px 0;font-size:13px;color:#888">
+    <button class="btn" ${curPage<=1?'disabled':''} onclick="loadLeads(${_pgOffset-PAGE_SIZE})">← Prev</button>
+    <span>Page ${curPage} of ${totalPages} &nbsp;·&nbsp; ${_pgTotal.toLocaleString()} total leads</span>
+    <button class="btn" ${curPage>=totalPages?'disabled':''} onclick="loadLeads(${_pgOffset+PAGE_SIZE})">Next →</button>
+  </div>`;
+}
+
+async function reloadLeads() {
+  await loadCounts();
+  await loadLeads(_pgOffset);
+  navRender();
+  toast('Refreshed');
+}
+
+function resetF(){
+  F={q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],
+     ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
+  renderLeadsPage(_pgTitle,_pgAssign);
+}
+
+// ════════════════════════════════════════════════════
+// MULTI-SELECT DROPDOWNS
+// (options loaded from current result set for relevance)
+// ════════════════════════════════════════════════════
+const MS_LABELS={roles:'Standard Role',statuses:'Status',cities:'City',
+  industries:'Industry',depts:'Department',sources:'Source',owners:'Owner'};
+const MS_STATIC={
+  statuses: STATUSES,
+  owners:   ['Unassigned'] // recruiters added after load
+};
+
+function getArr(id){
+  return{roles:F.roles,statuses:F.statuses,cities:F.cities,
+    industries:F.industries,depts:F.depts,sources:F.sources,owners:F.owners}[id]||[];
+}
+
+// For dropdowns that need dynamic options, we pre-load from DB once
+let _msOpts = {roles:[],cities:[],industries:[],depts:[],sources:[]};
+
+async function loadFilterOptions() {
+  // Load distinct values for dropdowns — fast distinct queries
+  const [roles,cities,inds,depts,sources] = await Promise.all([
+    SB.select('leads',{select:'standard_role',limit:200}),
+    SB.select('leads',{select:'current_city',limit:500}),
+    SB.select('leads',{select:'industry',limit:200}),
+    SB.select('leads',{select:'department',limit:200}),
+    SB.select('leads',{select:'source_channel',limit:50}),
+  ]);
+  const uniq = (res,key) => [...new Set((res.data||[]).map(r=>r[key]).filter(Boolean))].sort();
+  _msOpts.roles    = uniq(roles,   'standard_role');
+  _msOpts.cities   = uniq(cities,  'current_city');
+  _msOpts.industries=uniq(inds,   'industry');
+  _msOpts.depts    = uniq(depts,   'department');
+  _msOpts.sources  = uniq(sources, 'source_channel');
+}
+
+function msHTML(id) {
+  const opts = MS_STATIC[id] || _msOpts[id] || [];
+  const realOpts = id==='owners' ? ['Unassigned',...RECRUITERS] : opts;
+  const arr=getArr(id); const n=arr.length; const lbl=MS_LABELS[id];
+  return`<div class="ms-wrap" id="msw-${id}">
+  <button class="ms-btn${n?' on':''}" onclick="msToggleDD('${id}')" type="button">
+    <span>${n?lbl+' ('+n+')':lbl}</span>
+    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4"/></svg>
+  </button>
+  <div class="ms-dd" id="msd-${id}">
+    <input class="ms-si" placeholder="Search…" autocomplete="off"
+      oninput="msSearch('${id}',this.value)">
+    <div class="ms-list" id="msl-${id}">
+      ${renderMsOpts(id, realOpts)}
+    </div>
+    <div class="ms-foot">
+      <button onclick="msClearAll('${id}')">Clear</button>
+      <button onclick="msClose('${id}')">Done</button>
+    </div>
   </div></div>`;
 }
 
-// ═══════════════════════════════════════════════════════
-// LEADS TABLE
-// ═══════════════════════════════════════════════════════
-function renderLeadsPage(leads,title,assignMode=false){
-  _curLeads=leads;_curTitle=title;_curAssignMode=assignMode;
-  document.getElementById('pg-title').textContent=title;
-  document.getElementById('tba').innerHTML=`<button class="btn" onclick="refreshLeads()" title="Refresh from sheet">↻ Refresh</button>`;
-  selLeads=new Set();updateAsgBar();
-  const showOwner=appRole==='manager';
-  const hint=assignMode?`<div style="padding:4px 2px 8px;font-size:12px;color:#888">Tick checkboxes, then use the yellow bar above to assign, reassign, or unassign.</div>`:'';
-  document.getElementById('content').innerHTML=`<div id="fbar-wrap">${fbarHTML(leads,showOwner)}</div>${hint}
-  <div class="card"><div style="overflow-x:auto"><table class="tbl"><thead><tr>
-    <th><input type="checkbox" class="chk" id="chk-all" onchange="selAll(this)"></th>
-    <th>Name</th><th>Standard Role</th><th>Naukri Title</th><th>Industry</th><th>Current Role</th><th>Dept</th><th>City</th><th>Exp</th><th>CTC</th><th>Status</th><th>Owner</th><th>Source</th><th>Created</th>
-  </tr></thead><tbody id="leads-tbody"></tbody></table></div></div>`;
-  renderRows(applyFilters(leads));
+function renderMsOpts(id, opts) {
+  const arr=getArr(id);
+  return opts.map(o=>`<label class="ms-item">
+    <input type="checkbox" ${arr.includes(o)?'checked':''} onchange="msChange('${id}','${o.replace(/'/g,"\\'")}')">
+    <span>${o}</span></label>`).join('');
 }
 
-function renderRows(leads){
-  const tbody=document.getElementById('leads-tbody');if(!tbody)return;
-  if(!leads.length){tbody.innerHTML=`<tr><td colspan="14" style="padding:32px;text-align:center;color:#aaa;font-size:13px">No leads match the filters</td></tr>`;return;}
-  tbody.innerHTML=leads.map(l=>`<tr id="row-${l.lead_id}" class="${selLeads.has(l.lead_id)?'sel':''}">
-    <td onclick="event.stopPropagation()"><input type="checkbox" class="chk row-chk" id="chk-${l.lead_id}" ${selLeads.has(l.lead_id)?'checked':''} onchange="toggleSel('${l.lead_id}')"></td>
-    <td style="cursor:pointer" onclick="navDetail('${l.lead_id}')"><span style="font-weight:600;white-space:nowrap">${l.full_name}</span><br><span style="font-size:10px;color:#94a3b8;font-family:monospace">${l.phone_primary}</span></td>
-    <td style="font-size:11px;cursor:pointer;max-width:120px" onclick="navDetail('${l.lead_id}')">${l.standard_role||'—'}</td>
-    <td style="font-size:11px;color:#888;cursor:pointer" onclick="navDetail('${l.lead_id}')">${l.naukri_job_title||'—'}</td>
-    <td style="font-size:11px;cursor:pointer" onclick="navDetail('${l.lead_id}')">${l.industry||'—'}</td>
-    <td style="font-size:11px;cursor:pointer" onclick="navDetail('${l.lead_id}')">${l.current_designation||'—'}</td>
-    <td style="font-size:11px;cursor:pointer" onclick="navDetail('${l.lead_id}')">${l.department||'—'}</td>
-    <td style="cursor:pointer" onclick="navDetail('${l.lead_id}')">${l.current_city||'—'}</td>
-    <td style="font-family:monospace;font-size:11px;cursor:pointer" onclick="navDetail('${l.lead_id}')">${l.experience_yrs||'—'}</td>
-    <td style="font-family:monospace;font-size:11px;cursor:pointer" onclick="navDetail('${l.lead_id}')">${l.current_ctc_lpa||'—'}</td>
-    <td style="cursor:pointer" onclick="navDetail('${l.lead_id}')"><span class="badge ${SC[l.status]||'b-new'}">${l.status}</span></td>
-    <td style="cursor:pointer" onclick="navDetail('${l.lead_id}')"><span class="${l.owner?'owner-pill':'owner-pill unassigned'}">${l.owner||'Unassigned'}</span></td>
-    <td style="font-size:11px;color:#888;cursor:pointer" onclick="navDetail('${l.lead_id}')">${l.source_channel||'—'}</td>
-    <td style="font-size:11px;color:#94a3b8;font-family:monospace;cursor:pointer" onclick="navDetail('${l.lead_id}')">${l.create_date||'—'}</td>
-  </tr>`).join('');
+function msToggleDD(id){
+  document.querySelectorAll('.ms-dd.open').forEach(d=>{if(d.id!=='msd-'+id)d.classList.remove('open');});
+  document.getElementById('msd-'+id).classList.toggle('open');
+}
+function msClose(id){document.getElementById('msd-'+id).classList.remove('open');}
+function msClearAll(id){
+  getArr(id).splice(0);
+  document.querySelectorAll(`#msl-${id} input`).forEach(c=>c.checked=false);
+  updateMSBtn(id); loadLeads(0);
+}
+function msChange(id,val){
+  const arr=getArr(id);const i=arr.indexOf(val);
+  if(i>=0)arr.splice(i,1);else arr.push(val);
+  updateMSBtn(id); loadLeads(0);
+}
+function msSearch(id,q){
+  const opts = MS_STATIC[id]||(id==='owners'?['Unassigned',...RECRUITERS]:_msOpts[id])||[];
+  const filtered = q ? opts.filter(o=>o.toLowerCase().includes(q.toLowerCase())) : opts;
+  const list = document.getElementById('msl-'+id);
+  if(list) list.innerHTML = renderMsOpts(id, filtered);
+}
+function updateMSBtn(id){
+  const n=getArr(id).length; const lbl=MS_LABELS[id];
+  const btn=document.querySelector(`#msw-${id} .ms-btn`);
+  if(!btn)return;
+  btn.className='ms-btn'+(n?' on':'');
+  btn.querySelector('span').textContent=n?lbl+' ('+n+')':lbl;
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.ms-wrap'))
+    document.querySelectorAll('.ms-dd.open').forEach(d=>d.classList.remove('open'));
+});
+
+function numOpts(cur){
+  return[['between','— between'],['=','= equal'],['<','< less'],
+    ['<=','≤ less/equal'],['>','> greater'],['>=','≥ greater/equal']]
+    .map(([v,l])=>`<option value="${v}"${cur===v?' selected':''}>${l}</option>`).join('');
 }
 
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════
 // SELECTION + ASSIGN
-// ═══════════════════════════════════════════════════════
-function toggleSel(id){if(selLeads.has(id))selLeads.delete(id);else selLeads.add(id);const c=document.getElementById('chk-'+id);if(c)c.checked=selLeads.has(id);const r=document.getElementById('row-'+id);if(r)r.classList.toggle('sel',selLeads.has(id));updateAsgBar();}
-function selAll(chk){document.querySelectorAll('.row-chk').forEach(c=>{const id=c.id.replace('chk-','');c.checked=chk.checked;if(chk.checked)selLeads.add(id);else selLeads.delete(id);const r=document.getElementById('row-'+id);if(r)r.classList.toggle('sel',chk.checked);});updateAsgBar();}
-function clearSel(){selLeads=new Set();document.querySelectorAll('.row-chk').forEach(c=>c.checked=false);const ca=document.getElementById('chk-all');if(ca)ca.checked=false;document.querySelectorAll('.tbl tr.sel').forEach(r=>r.classList.remove('sel'));updateAsgBar();}
+// ════════════════════════════════════════════════════
+function toggleSel(id){
+  if(selLeads.has(id))selLeads.delete(id);else selLeads.add(id);
+  const c=document.getElementById('chk-'+id);if(c)c.checked=selLeads.has(id);
+  const r=document.getElementById('row-'+id);if(r)r.classList.toggle('sel',selLeads.has(id));
+  updateAsgBar();
+}
+function selAll(chk){
+  document.querySelectorAll('.row-chk').forEach(c=>{
+    const id=c.id.replace('chk-','');c.checked=chk.checked;
+    if(chk.checked)selLeads.add(id);else selLeads.delete(id);
+    const r=document.getElementById('row-'+id);if(r)r.classList.toggle('sel',chk.checked);
+  });
+  updateAsgBar();
+}
+function clearSel(){
+  selLeads=new Set();
+  document.querySelectorAll('.row-chk').forEach(c=>c.checked=false);
+  const ca=document.getElementById('chk-all');if(ca)ca.checked=false;
+  document.querySelectorAll('.tbl tr.sel').forEach(r=>r.classList.remove('sel'));
+  updateAsgBar();
+}
 function updateAsgBar(){
-  const n=selLeads.size,bar=document.getElementById('asgbar'),btn=document.getElementById('asg-btn'),hint=document.getElementById('asg-hint'),rec=document.getElementById('asg-rec'),info=document.getElementById('asg-info');
-  if(n>0){bar.classList.add('on');if(info)info.textContent=n+' lead'+(n>1?'s':'')+' selected';const rv=rec?rec.value:'';if(btn)btn.disabled=!rv;if(hint){if(rv==='__rr__')hint.textContent='Distributes across all recruiters';else if(rv==='__none__')hint.textContent='Goes back to unassigned pool';else if(rv)hint.textContent='→ '+rv;else hint.textContent='';}}
-  else{bar.classList.remove('on');if(btn)btn.disabled=true;if(hint)hint.textContent='';}
+  const n=selLeads.size;
+  const bar=document.getElementById('asgbar');
+  const btn=document.getElementById('asg-btn');
+  const hint=document.getElementById('asg-hint');
+  const rec=document.getElementById('asg-rec');
+  const info=document.getElementById('asg-info');
+  if(n>0){
+    bar.classList.add('on');
+    if(info)info.textContent=n+' lead'+(n>1?'s':'')+' selected';
+    const rv=rec?rec.value:'';
+    if(btn)btn.disabled=!rv;
+    if(hint){
+      if(rv==='__rr__')hint.textContent='Distribute across all recruiters';
+      else if(rv==='__none__')hint.textContent='Send back to unassigned pool';
+      else if(rv)hint.textContent='→ '+rv;
+      else hint.textContent='';
+    }
+  } else {
+    bar.classList.remove('on');
+    if(btn)btn.disabled=true;
+    if(hint)hint.textContent='';
+  }
 }
 
 async function doAssign(){
@@ -576,186 +777,377 @@ async function doAssign(){
   const btn=document.getElementById('asg-btn');
   btn.disabled=true;btn.textContent='Saving…';
 
-  let res;
+  let updated=0;
   if(rec==='__none__'){
-    res = await api('unassignLeads',{lead_ids:ids});
+    // Unassign in batches of 50
+    for(let i=0;i<ids.length;i+=50){
+      const batch=ids.slice(i,i+50);
+      await SB.update('leads',{owner:''}, [`lead_id=in.(${batch.join(',')})`]);
+      updated+=batch.length;
+    }
   } else if(rec==='__rr__'){
-    res = await api('assignLeads',{lead_ids:ids,round_robin:true,recruiters:RECRUITERS});
+    // Round-robin — assign one by one
+    for(let i=0;i<ids.length;i++){
+      const owner=RECRUITERS[i%RECRUITERS.length];
+      await SB.update('leads',{owner},
+        [`lead_id=eq.${ids[i]}`]);
+      updated++;
+    }
   } else {
-    res = await api('assignLeads',{lead_ids:ids,owner:rec});
+    // Assign all to one recruiter
+    for(let i=0;i<ids.length;i+=50){
+      const batch=ids.slice(i,i+50);
+      await SB.update('leads',{owner:rec},
+        [`lead_id=in.(${batch.join(',')})`]);
+      updated+=batch.length;
+    }
   }
 
-  if(res.ok){
-    // Update local state
-    ids.forEach((id,i)=>{
-      const l=LEADS.find(x=>x.lead_id===id);if(!l)return;
-      if(rec==='__none__')l.owner='';
-      else if(rec==='__rr__')l.owner=RECRUITERS[i%RECRUITERS.length];
-      else l.owner=rec;
-    });
-    toast(res.updated+' lead'+(res.updated>1?'s':'')+' updated.');
-  } else {
-    toast('Error: '+res.error, true);
-  }
-
-  clearSel();document.getElementById('asg-rec').value='';
+  toast(updated+' lead'+(updated>1?'s':'')+' updated');
+  clearSel();
   btn.disabled=false;btn.textContent='Confirm';
-  renderLeadsPage(_curLeads,_curTitle,_curAssignMode);
+  document.getElementById('asg-rec').value='';
+  await loadCounts();
+  navRender();
+  await loadLeads(_pgOffset);
 }
 
-// ═══════════════════════════════════════════════════════
+function rebuildAsgDrop(){
+  const sel=document.getElementById('asg-rec');if(!sel)return;
+  while(sel.options.length>3)sel.remove(3);
+  RECRUITERS.forEach(r=>{
+    const o=document.createElement('option');
+    o.value=r;o.text=r;sel.add(o,2);
+  });
+}
+
+// ════════════════════════════════════════════════════
 // NAVIGATION
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════
 function nav(target){prevPage=page;page=target;render();}
-function navDetail(lid){prevPage=page;activeLead=lid;page='detail';render();}
+function navD(lid){prevPage=page;activeLead=lid;page='detail';render();}
 function goBack(){page=prevPage||'dashboard';render();}
-function renderCurrentPage(){
-  if(page==='all')renderLeadsPage(LEADS,'All leads',true);
-  else if(page==='assign')renderLeadsPage(LEADS.filter(l=>!l.owner),'Assign leads',true);
-  else if(page==='my-leads')renderLeadsPage(LEADS.filter(l=>l.owner===SESSION.name),'My leads');
-  else if(page==='followups')renderLeadsPage(LEADS.filter(l=>l.owner===SESSION.name&&l.followup_date),'Follow-ups today');
+
+// ════════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════════
+function renderDashboard(){
+  document.getElementById('pg-title').textContent='Dashboard';
+  document.getElementById('tba').innerHTML=
+    `<button class="btn" onclick="reloadDashboard()">↻ Refresh</button>`;
+  document.getElementById('asgbar').classList.remove('on');
+
+  document.getElementById('content').innerHTML=`
+  <div class="metrics">
+    <div class="metric"><div class="mv blue">${(COUNTS.total||0).toLocaleString()}</div><div class="ml">Total leads</div></div>
+    <div class="metric"><div class="mv red">${(COUNTS.unassigned||0).toLocaleString()}</div><div class="ml">Unassigned</div></div>
+    <div class="metric"><div class="mv green">${(COUNTS.pipeline||0).toLocaleString()}</div><div class="ml">Active pipeline</div></div>
+    <div class="metric"><div class="mv warn">${RECRUITERS.length}</div><div class="ml">Recruiters</div></div>
+  </div>
+  <div id="dash-details">
+    <div class="loader-wrap"><div class="spinner"></div></div>
+  </div>`;
+
+  loadDashboardDetails();
 }
 
-// ═══════════════════════════════════════════════════════
+async function loadDashboardDetails(){
+  // Load pipeline breakdown and recent unassigned
+  const [statusRes, unassignedRes] = await Promise.all([
+    SB.select('leads',{select:'status',limit:10000}),
+    SB.select('leads',{
+      filters:['owner=eq.'],
+      order:'create_date.desc',
+      limit:6
+    })
+  ]);
+
+  const statusCounts={};
+  (statusRes.data||[]).forEach(r=>{
+    statusCounts[r.status]=(statusCounts[r.status]||0)+1;
+  });
+  const total = COUNTS.total||1;
+
+  const el=document.getElementById('dash-details');if(!el)return;
+  el.innerHTML=`
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+  <div class="card"><div class="ch"><div class="ch-t">Pipeline by status</div></div><div style="padding:14px">
+    ${['New','Contacted','Interested','Shortlisted'].map(s=>{
+      const n=statusCounts[s]||0;
+      const pct=Math.round(n/total*100);
+      return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+        <span style="font-size:12px;width:76px;color:#888">${s}</span>
+        <div style="flex:1;height:6px;background:#f0f1f5;border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:#4361ee;border-radius:3px"></div></div>
+        <span style="font-size:11px;font-family:monospace;width:28px;text-align:right">${n}</span>
+      </div>`;}).join('')}
+  </div></div>
+  <div class="card"><div class="ch"><div class="ch-t">Team</div></div><div style="padding:14px">
+    ${RECRUITERS.length?RECRUITERS.map(r=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0f1f5">
+        <span style="font-size:13px">${r}</span>
+        <button class="btn" style="font-size:11px;padding:3px 10px"
+          onclick="F={...F};F.owners=['${r}'];page='all';render()">View leads</button>
+      </div>`).join('')
+    :`<div style="color:#aaa;font-size:13px">No recruiters found</div>`}
+  </div></div></div>
+  <div class="card"><div class="ch">
+    <div class="ch-t">Recent unassigned leads</div>
+    <button class="btn pri" onclick="nav('assign')">Assign now</button>
+  </div>
+  <table class="tbl"><thead><tr>
+    <th>Name</th><th>Standard Role</th><th>City</th><th>Source</th><th>Created</th>
+  </tr></thead><tbody>
+  ${(unassignedRes.data||[]).map(l=>`<tr onclick="navD('${l.lead_id}')">
+    <td style="font-weight:600">${l.full_name}</td>
+    <td style="font-size:11px">${l.standard_role||'—'}</td>
+    <td>${l.current_city||'—'}</td>
+    <td><span class="badge b-new">${l.source_channel||'—'}</span></td>
+    <td style="font-family:monospace;font-size:11px;color:#94a3b8">${l.create_date||'—'}</td>
+  </tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+async function reloadDashboard(){
+  await loadCounts();
+  renderDashboard();
+}
+
+// ════════════════════════════════════════════════════
+// PERFORMANCE
+// ════════════════════════════════════════════════════
+async function renderPerformance(){
+  document.getElementById('pg-title').textContent='Performance';
+  document.getElementById('tba').innerHTML=`<button class="btn" onclick="renderPerformance()">↻ Refresh</button>`;
+  document.getElementById('asgbar').classList.remove('on');
+  document.getElementById('content').innerHTML=
+    `<div class="loader-wrap"><div class="spinner"></div></div>`;
+
+  const rows = await Promise.all(RECRUITERS.map(async r => {
+    const counts = await Promise.all(
+      ['New','Contacted','Interested','Shortlisted','Placed'].map(s =>
+        SB.count('leads',[`owner=eq.${encodeURIComponent(r)}`,`status=eq.${s}`])
+      )
+    );
+    const total = await SB.count('leads',[`owner=eq.${encodeURIComponent(r)}`]);
+    return {r, total, counts};
+  }));
+
+  document.getElementById('content').innerHTML=`
+  <div class="card"><div class="ch"><div class="ch-t">Recruiter breakdown</div></div>
+  <div style="overflow-x:auto"><table class="tbl"><thead><tr>
+    <th>Recruiter</th><th>Total</th><th>New</th><th>Contacted</th>
+    <th>Interested</th><th>Shortlisted</th><th>Placed</th>
+  </tr></thead><tbody>
+  ${rows.map(({r,total,counts})=>`<tr>
+    <td style="font-weight:600">${r}</td>
+    <td style="font-family:monospace">${total}</td>
+    ${counts.map(n=>`<td style="font-family:monospace">${n}</td>`).join('')}
+  </tr>`).join('')}
+  </tbody></table></div></div>`;
+}
+
+// ════════════════════════════════════════════════════
 // LEAD DETAIL
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════
 function canEdit(k){if(appRole==='manager')return true;return REC_EDIT.includes(k);}
 
-function fieldCell(k,label,l){
-  const v=l[k]!==undefined&&l[k]!==''?String(l[k]):'';
+function fcell(k,lbl,l){
+  const v=(l[k]!==undefined&&l[k]!==null&&l[k]!=='')?String(l[k]):'';
   const editable=canEdit(k);
   const locked=MGR_ONLY.includes(k)&&appRole==='recruiter';
-  const ctrl=editable?`<button class="fc-edit-btn" onclick="startEdit('${k}','${l.lead_id}')">edit</button>`:locked?`<span class="fc-locked">manager only</span>`:'';
-  return`<div class="field-cell" id="fc-${k}"><div class="fc-label"><span class="fc-lbl-text">${label}</span>${ctrl}</div><div class="fc-value${v?'':' empty'}" id="fv-${k}">${v||'—'}</div></div>`;
+  const ctrl=editable
+    ?`<button class="fc-eb" onclick="startEdit('${k}','${l.lead_id}')">edit</button>`
+    :locked?`<span class="fc-lock">manager only</span>`:'';
+  return`<div class="fcell" id="fc-${k}">
+    <div class="fclbl"><span class="fc-lt">${lbl}</span>${ctrl}</div>
+    <div class="fcval${v?'':' empty'}" id="fv-${k}">${v||'—'}</div>
+  </div>`;
 }
 
 function startEdit(k,lid){
   if(!canEdit(k))return;
   const l=LEADS.find(x=>x.lead_id===lid);if(!l)return;
-  const v=l[k]!==undefined?l[k]:'';
+  const v=l[k]!==undefined&&l[k]!==null?l[k]:'';
   const fv=document.getElementById('fv-'+k);if(!fv)return;
-  const ALL_ROLES=[...new Set(LEADS.map(l=>l.standard_role))].sort();
   const inp=k==='standard_role'
-    ?`<select class="edit-input" id="ei-${k}">${ALL_ROLES.map(o=>`<option${String(v)===o?' selected':''}>${o}</option>`).join('')}</select>`
-    :`<input type="${k==='experience_yrs'||k==='current_ctc_lpa'?'number':'text'}" class="edit-input" id="ei-${k}" value="${v}">`;
-  fv.innerHTML=inp+`<div class="edit-acts"><button class="btn pri" style="font-size:11px;padding:3px 10px" onclick="saveEdit('${k}','${lid}')">Save</button><button class="btn" style="font-size:11px;padding:3px 10px" onclick="cancelEdit('${k}','${lid}')">Cancel</button></div>`;
-  const el=document.getElementById('ei-'+k);if(el){el.focus();if(el.select&&el.type!=='select-one')el.select();}
+    ?`<select class="edit-inp" id="ei-${k}">${(_msOpts.roles||[]).map(o=>`<option${String(v)===o?' selected':''}>${o}</option>`).join('')}</select>`
+    :`<input type="${k==='experience_yrs'||k==='current_ctc_lpa'?'number':'text'}"
+       class="edit-inp" id="ei-${k}" value="${v}">`;
+  fv.innerHTML=inp+`<div class="edit-acts">
+    <button class="btn pri" style="font-size:11px;padding:3px 10px"
+      onclick="saveEdit('${k}','${lid}')">Save</button>
+    <button class="btn" style="font-size:11px;padding:3px 10px"
+      onclick="cancelEdit('${k}','${lid}')">Cancel</button>
+  </div>`;
+  const el=document.getElementById('ei-'+k);
+  if(el){el.focus();if(el.type!=='select-one'&&el.select)el.select();}
 }
 
 async function saveEdit(k,lid){
   const l=LEADS.find(x=>x.lead_id===lid);if(!l)return;
   const el=document.getElementById('ei-'+k);if(!el)return;
-  const val=el.type==='number'?parseFloat(el.value)||0:el.value;
-
+  const val=el.type==='number'?parseFloat(el.value)||null:el.value;
   const fv=document.getElementById('fv-'+k);
   if(fv)fv.innerHTML='<span style="color:#94a3b8;font-size:12px">Saving…</span>';
-
-  const res=await api('updateField',{lead_id:lid,field:k,value:val});
+  const res=await SB.update('leads',{[k]:val},[`lead_id=eq.${lid}`]);
   if(res.ok){
-    l[k]=val;
-    toast('Field updated');
+    l[k]=val; toast('Updated ✓');
     renderDetail();
   } else {
-    toast('Error: '+res.error,true);
-    cancelEdit(k,lid);
+    toast('Error saving field',true); cancelEdit(k,lid);
   }
 }
 
-function cancelEdit(k,lid){const l=LEADS.find(x=>x.lead_id===lid);if(!l)return;const fv=document.getElementById('fv-'+k);if(!fv)return;const v=l[k]!==undefined&&l[k]!==''?String(l[k]):'';fv.className='fc-value'+(v?'':' empty');fv.innerHTML=v||'—';}
+function cancelEdit(k,lid){
+  const l=LEADS.find(x=>x.lead_id===lid);if(!l)return;
+  const fv=document.getElementById('fv-'+k);if(!fv)return;
+  const v=(l[k]!==undefined&&l[k]!==null&&l[k]!=='')?String(l[k]):'';
+  fv.className='fcval'+(v?'':' empty');fv.innerHTML=v||'—';
+}
 
 async function saveCall(lid){
   const l=LEADS.find(x=>x.lead_id===lid);if(!l)return;
-  const btn=document.querySelector('#call-save-btn');
+  const btn=document.getElementById('call-save-btn');
   if(btn){btn.disabled=true;btn.textContent='Saving…';}
 
-  const body={
-    lead_id:lid,
-    recruiter_name:SESSION.name,
-    call_outcome:document.getElementById('fo-out').value,
-    english_proficiency:document.getElementById('fo-eng').value,
-    notes:document.getElementById('fo-notes').value,
-    followup_date:document.getElementById('fo-date').value,
-    new_status:document.getElementById('fo-st').value,
-    shortlisted_for:document.getElementById('fo-client').value,
-  };
+  const newStatus    = document.getElementById('fo-st').value;
+  const shortlisted  = document.getElementById('fo-client').value;
+  const followupDate = document.getElementById('fo-date').value||null;
 
-  const res=await api('logCall',body);
-  if(res.ok){
-    l.status=body.new_status;
-    l.shortlisted_for=body.shortlisted_for;
-    toast('Call logged ✓');
-    renderDetail();
-  } else {
-    toast('Error: '+res.error,true);
-    if(btn){btn.disabled=false;btn.textContent='Save call log';}
-  }
+  // Insert call log
+  const today = new Date().toISOString().slice(0,10);
+  const logId = 'LOG-'+Date.now();
+  await SB.insert('call_log',{
+    log_id:      logId,
+    lead_id:     lid,
+    recruiter_name: SESSION.name,
+    call_date:   today,
+    call_outcome: document.getElementById('fo-out').value,
+    english_proficiency: document.getElementById('fo-eng').value,
+    notes:       document.getElementById('fo-notes').value,
+    followup_date: followupDate
+  });
+
+  // Update lead status + shortlisted_for
+  await SB.update('leads',{
+    status:         newStatus,
+    shortlisted_for:shortlisted,
+    followup_date:  followupDate
+  },[`lead_id=eq.${lid}`]);
+
+  l.status=newStatus;
+  l.shortlisted_for=shortlisted;
+  l.followup_date=followupDate;
+
+  toast('Call logged ✓');
+  if(btn){btn.disabled=false;btn.textContent='Save call log';}
+  renderDetail();
 }
 
 async function doDetailReassign(lid){
   const l=LEADS.find(x=>x.lead_id===lid);if(!l)return;
-  const sel=document.getElementById('detail-reassign');if(!sel||!sel.value)return;
-  const prev=l.owner||'Unassigned';
+  const sel=document.getElementById('detail-reassign');
+  if(!sel||!sel.value)return;
   const newOwner=sel.value==='__none__'?'':sel.value;
-
-  const res=await api('assignLeads',{lead_ids:[lid],owner:newOwner});
+  const res=await SB.update('leads',{owner:newOwner},[`lead_id=eq.${lid}`]);
   if(res.ok){
     l.owner=newOwner;
-    toast(sel.value==='__none__'?'Lead unassigned':'Owner changed to '+newOwner);
+    toast(newOwner?'Reassigned to '+newOwner:'Lead unassigned');
+    await loadCounts(); navRender();
     renderDetail();
   } else {
-    toast('Error: '+res.error,true);
+    toast('Error reassigning lead',true);
   }
 }
 
-function renderDetail(){
-  const l=LEADS.find(x=>x.lead_id===activeLead);if(!l)return;
-  document.getElementById('pg-title').textContent=l.full_name;
+async function renderDetail(){
+  // Fetch fresh lead data from Supabase
+  const res = await SB.select('leads',{
+    filters:[`lead_id=eq.${activeLead}`],limit:1
+  });
+  const l = res.data&&res.data[0] ? res.data[0]
+    : LEADS.find(x=>x.lead_id===activeLead);
+  if(!l)return;
 
+  // Update local cache
+  const idx=LEADS.findIndex(x=>x.lead_id===activeLead);
+  if(idx>=0) LEADS[idx]=l;
+
+  // Fetch call logs
+  const logRes = await SB.select('call_log',{
+    filters:[`lead_id=eq.${activeLead}`],
+    order:'call_date.desc',
+    limit:20
+  });
+  const logs = logRes.data||[];
+
+  document.getElementById('pg-title').textContent=l.full_name;
   const mgrActions=appRole==='manager'?`
-    <select id="detail-reassign" style="padding:6px 10px;border-radius:8px;border:1.5px solid #e0e0e0;background:#fff;font-size:12px;cursor:pointer;font-family:inherit">
-      <option value="">Change owner...</option>
+    <select id="detail-reassign" style="padding:6px 10px;border-radius:8px;border:1.5px solid #e0e0e0;font-size:12px;cursor:pointer;font-family:inherit">
+      <option value="">Change owner…</option>
       ${RECRUITERS.map(r=>`<option value="${r}"${l.owner===r?' disabled':''}>${r}</option>`).join('')}
       ${l.owner?`<option value="__none__">Unassign this lead</option>`:''}
     </select>
     <button class="btn warn" onclick="doDetailReassign('${l.lead_id}')">Apply</button>`:''
-  document.getElementById('tba').innerHTML=`<button class="btn" onclick="goBack()">← Back</button>${mgrActions}`;
+  document.getElementById('tba').innerHTML=
+    `<button class="btn" onclick="goBack()">← Back</button>${mgrActions}`;
 
   document.getElementById('content').innerHTML=`
   <div class="detail-wrap">
   <div>
     <div class="hero-card">
-      <div class="hero-row">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
         <div class="hero-av">${l.full_name.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
-        <div style="flex:1"><div class="hero-name">${l.full_name}</div><div class="hero-contact">${l.phone_primary} · ${l.email||'—'}</div></div>
+        <div style="flex:1">
+          <div class="hero-name">${l.full_name}</div>
+          <div class="hero-contact">${l.phone_primary} · ${l.email||'—'}</div>
+        </div>
         <span class="badge ${SC[l.status]||'b-new'}">${l.status}</span>
       </div>
       <div class="hero-owner-row">
         <span>Owner:</span>
-        <span class="${l.owner?'owner-pill':'owner-pill unassigned'}">${l.owner||'Unassigned'}</span>
+        <span class="${l.owner?'opill':'opill u'}">${l.owner||'Unassigned'}</span>
         <span style="margin-left:auto">Source: ${l.source_channel} · ${l.create_date}</span>
       </div>
     </div>
 
-    <div class="sec-label">Identity</div>
-    <div class="field-grid" style="display:grid;grid-template-columns:1fr 1fr;margin-bottom:12px">
-      ${fieldCell('full_name','Full name',l)}${fieldCell('phone_primary','Phone',l)}
-      ${fieldCell('email','Email',l)}${fieldCell('current_city','City',l)}
+    <div class="sec-lbl">Identity</div>
+    <div class="fgrid" style="display:grid;grid-template-columns:1fr 1fr;margin-bottom:12px">
+      ${fcell('full_name','Full name',l)}${fcell('phone_primary','Phone',l)}
+      ${fcell('email','Email',l)}${fcell('current_city','City',l)}
     </div>
 
-    <div class="sec-label">Professional</div>
-    <div class="field-grid" style="display:grid;grid-template-columns:1fr 1fr;margin-bottom:12px">
-      ${fieldCell('current_company','Current company',l)}${fieldCell('standard_role','Standard role',l)}
-      ${fieldCell('naukri_job_title','Naukri job title',l)}${fieldCell('current_designation','Current designation',l)}
-      ${fieldCell('department','Department',l)}${fieldCell('industry','Industry',l)}
-      ${fieldCell('experience_yrs','Experience (yrs)',l)}${fieldCell('current_ctc_lpa','Current CTC (LPA)',l)}
-      ${fieldCell('shortlisted_for','Shortlisted for',l)}
+    <div class="sec-lbl">Professional</div>
+    <div class="fgrid" style="display:grid;grid-template-columns:1fr 1fr;margin-bottom:12px">
+      ${fcell('current_company','Current company',l)}${fcell('standard_role','Standard role',l)}
+      ${fcell('naukri_job_title','Naukri job title',l)}${fcell('current_designation','Current designation',l)}
+      ${fcell('department','Department',l)}${fcell('industry','Industry',l)}
+      ${fcell('experience_yrs','Experience (yrs)',l)}${fcell('current_ctc_lpa','Current CTC (LPA)',l)}
+      ${fcell('shortlisted_for','Shortlisted for',l)}
     </div>
 
     <div class="card">
       <div class="ch"><div class="ch-t">Call history</div></div>
       <div style="padding:10px 14px">
-        ${l.status!=='New'?`<div class="tl-item"><div class="tl-dot blue"></div><div><div class="tl-body">Status: ${l.status}${l.shortlisted_for?' · Shortlisted for: '+l.shortlisted_for:''}</div><div class="tl-time">${l.create_date}</div></div></div>`:''}
-        <div class="tl-item"><div class="tl-dot gray"></div><div><div class="tl-body">Imported from ${l.source_channel}</div><div class="tl-time">${l.create_date}</div></div></div>
+        ${logs.length?logs.map(log=>`
+          <div class="tl-item">
+            <div class="tl-dot b"></div>
+            <div>
+              <div class="tl-body">
+                ${log.call_outcome||'Call logged'}
+                ${log.english_proficiency?' · English: '+log.english_proficiency:''}
+                ${log.notes?'<br>'+log.notes:''}
+              </div>
+              <div class="tl-time">${log.call_date} · ${log.recruiter_name||'—'}</div>
+            </div>
+          </div>`).join('')
+        :`<div class="tl-item"><div class="tl-dot g"></div><div>
+            <div class="tl-body">No calls logged yet</div></div></div>`}
+        <div class="tl-item"><div class="tl-dot g"></div>
+          <div><div class="tl-body">Imported from ${l.source_channel}</div>
+          <div class="tl-time">${l.create_date}</div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -765,286 +1157,128 @@ function renderDetail(){
       <div class="ch"><div class="ch-t">Log a call</div></div>
       <div class="ff">
         <div class="fr2">
-          <div class="fr"><label class="fl">Call outcome</label><select class="fi-full" id="fo-out">${['Not Called','Interested','Not Interested','Not Reachable','Callback Requested','Wrong Number'].map(o=>`<option>${o}</option>`).join('')}</select></div>
-          <div class="fr"><label class="fl">Status</label><select class="fi-full" id="fo-st">${STATUSES.map(s=>`<option${l.status===s?' selected':''}>${s}</option>`).join('')}</select></div>
+          <div class="fr"><label class="fl">Call outcome</label>
+            <select class="fi-full" id="fo-out">
+              ${['Not Called','Interested','Not Interested','Not Reachable',
+                 'Callback Requested','Wrong Number'].map(o=>`<option>${o}</option>`).join('')}
+            </select></div>
+          <div class="fr"><label class="fl">Status</label>
+            <select class="fi-full" id="fo-st">
+              ${STATUSES.map(s=>`<option${l.status===s?' selected':''}>${s}</option>`).join('')}
+            </select></div>
         </div>
         <div class="fr"><label class="fl">English proficiency</label>
-          <select class="fi-full" id="fo-eng"><option value="">— not assessed</option><option>Poor</option><option>Average</option><option>Good</option></select>
-        </div>
-        <div class="fr"><label class="fl">Notes</label><textarea class="fi-full" id="fo-notes" placeholder="What was discussed..."></textarea></div>
-        <div class="fr"><label class="fl">Follow-up date</label><input type="date" class="fi-full" id="fo-date"></div>
-        <div class="fr"><label class="fl">Shortlisted for</label><input type="text" class="fi-full" id="fo-client" placeholder="Client / position" value="${l.shortlisted_for||''}"></div>
-        <div class="save-btn-row"><button class="btn pri" id="call-save-btn" style="width:100%" onclick="saveCall('${l.lead_id}')">Save call log</button></div>
+          <select class="fi-full" id="fo-eng">
+            <option value="">— not assessed</option>
+            <option>Poor</option><option>Average</option><option>Good</option>
+          </select></div>
+        <div class="fr"><label class="fl">Notes</label>
+          <textarea class="fi-full" id="fo-notes" placeholder="What was discussed…"></textarea></div>
+        <div class="fr"><label class="fl">Follow-up date</label>
+          <input type="date" class="fi-full" id="fo-date"
+            value="${l.followup_date||''}"></div>
+        <div class="fr"><label class="fl">Shortlisted for</label>
+          <input type="text" class="fi-full" id="fo-client"
+            placeholder="Client / position" value="${l.shortlisted_for||''}"></div>
+        <button class="btn pri" id="call-save-btn" style="width:100%"
+          onclick="saveCall('${l.lead_id}')">Save call log</button>
       </div>
     </div>
   </div>
   </div>`;
 }
 
-// ═══════════════════════════════════════════════════════
-// DASHBOARD
-// ═══════════════════════════════════════════════════════
-function renderDashboard(){
-  document.getElementById('pg-title').textContent='Dashboard';
-  document.getElementById('tba').innerHTML=`<button class="btn" onclick="refreshLeads()">↻ Refresh</button>`;
-  document.getElementById('asgbar').classList.remove('on');
-  const unassigned=LEADS.filter(l=>!l.owner).length;
-  const pipeline=LEADS.filter(l=>['Interested','Shortlisted'].includes(l.status)).length;
-  document.getElementById('content').innerHTML=`
-  <div class="metrics">
-    <div class="metric"><div class="mv blue">${LEADS.length}</div><div class="ml">Total leads</div></div>
-    <div class="metric"><div class="mv red">${unassigned}</div><div class="ml">Unassigned</div></div>
-    <div class="metric"><div class="mv green">${pipeline}</div><div class="ml">Active pipeline</div></div>
-    <div class="metric"><div class="mv warn">${LEADS.filter(l=>l.status==='Shortlisted').length}</div><div class="ml">Shortlisted</div></div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-  <div class="card"><div class="ch"><div class="ch-t">Pipeline by status</div></div><div style="padding:14px">
-    ${['New','Contacted','Interested','Shortlisted'].map(s=>{const n=LEADS.filter(l=>l.status===s).length;const pct=LEADS.length?Math.round(n/LEADS.length*100):0;return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px"><span style="font-size:12px;width:76px;color:#888">${s}</span><div style="flex:1;height:6px;background:#f0f1f5;border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:#4361ee;border-radius:3px"></div></div><span style="font-size:11px;font-family:monospace;width:18px;text-align:right">${n}</span></div>`}).join('')}
-  </div></div>
-  <div class="card"><div class="ch"><div class="ch-t">By source channel</div></div><div style="padding:14px">
-    ${[...new Set(LEADS.map(l=>l.source_channel))].map(s=>{const n=LEADS.filter(l=>l.source_channel===s).length;const pct=LEADS.length?Math.round(n/LEADS.length*100):0;return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px"><span style="font-size:12px;width:76px;color:#888">${s||'Unknown'}</span><div style="flex:1;height:6px;background:#f0f1f5;border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:#22c55e;border-radius:3px"></div></div><span style="font-size:11px;font-family:monospace;width:18px;text-align:right">${n}</span></div>`}).join('')}
-  </div></div>
-  </div>
-  <div class="card"><div class="ch"><div class="ch-t">Unassigned leads</div><button class="btn pri" onclick="nav('assign')">Assign now</button></div>
-  <table class="tbl"><thead><tr><th>Name</th><th>Standard Role</th><th>City</th><th>Source</th><th>Created</th></tr></thead>
-  <tbody>${LEADS.filter(l=>!l.owner).slice(0,5).map(l=>`<tr style="cursor:pointer" onclick="navDetail('${l.lead_id}')"><td style="font-weight:600">${l.full_name}</td><td style="font-size:11px">${l.standard_role||'—'}</td><td>${l.current_city||'—'}</td><td><span class="badge b-new">${l.source_channel||'—'}</span></td><td style="font-family:monospace;font-size:11px;color:#94a3b8">${l.create_date||'—'}</td></tr>`).join('')}
-  </tbody></table></div>`;
-}
-
-function renderPerformance(){
-  document.getElementById('pg-title').textContent='Performance';
-  document.getElementById('tba').innerHTML=`<button class="btn" onclick="refreshLeads()">↻ Refresh</button>`;
-  document.getElementById('asgbar').classList.remove('on');
-  const statuses=['New','Contacted','Interested','Shortlisted','Submitted to Client','Placed'];
-  document.getElementById('content').innerHTML=`
-  <div class="card"><div class="ch"><div class="ch-t">Recruiter breakdown</div></div>
-  <table class="tbl"><thead><tr><th>Recruiter</th><th>Total</th>${statuses.map(s=>`<th>${s}</th>`).join('')}</tr></thead>
-  <tbody>${RECRUITERS.length?RECRUITERS.map(r=>{const mine=LEADS.filter(l=>l.owner===r);return`<tr><td style="font-weight:600">${r}</td><td style="font-family:monospace">${mine.length}</td>${statuses.map(s=>`<td style="font-family:monospace">${mine.filter(l=>l.status===s).length}</td>`).join('')}</tr>`}).join(''):'<tr><td colspan="8" style="padding:24px;text-align:center;color:#aaa">No assigned leads yet</td></tr>'}
-  </tbody></table></div>
-  <div class="card"><div class="ch"><div class="ch-t">Unassigned leads by role</div></div>
-  <table class="tbl"><thead><tr><th>Standard Role</th><th>Count</th></tr></thead>
-  <tbody>${[...new Set(LEADS.filter(l=>!l.owner).map(l=>l.standard_role))].map(r=>{const n=LEADS.filter(l=>!l.owner&&l.standard_role===r).length;return`<tr><td>${r||'Unmapped'}</td><td style="font-family:monospace">${n}</td></tr>`}).join('')}
-  </tbody></table></div>`;
-}
-
-// ═══════════════════════════════════════════════════════
-// SIDEBAR NAV
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════
+// SIDEBAR
+// ════════════════════════════════════════════════════
 function navRender(){
   const nb=document.getElementById('sb-nav');nb.innerHTML='';
-  const unassigned=LEADS.filter(l=>!l.owner).length;
-  const myLeads=LEADS.filter(l=>l.owner===SESSION?.name);
-  const followups=myLeads.filter(l=>l.followup_date).length;
-
   const pages=appRole==='manager'?[
     {sec:'overview',items:[
-      {id:'dashboard',lbl:'Dashboard',ico:'⊞'},
-      {id:'all',lbl:'All leads',ico:'≡',badge:LEADS.length,bc:'nb-b'},
-      {id:'assign',lbl:'Assign leads',ico:'◎',badge:unassigned,bc:'nb-r'},
+      {id:'dashboard', lbl:'Dashboard',    ico:'⊞'},
+      {id:'all',       lbl:'All leads',    ico:'≡', badge:(COUNTS.total||0).toLocaleString(), bc:'nb-b'},
+      {id:'assign',    lbl:'Assign leads', ico:'◎', badge:(COUNTS.unassigned||0).toLocaleString(), bc:'nb-r'},
     ]},
     {sec:'team',items:[
       {id:'performance',lbl:'Performance',ico:'↗'},
     ]},
   ]:[
     {sec:'my work',items:[
-      {id:'my-leads',lbl:'My leads',ico:'≡',badge:myLeads.length,bc:'nb-g'},
-      {id:'followups',lbl:'Follow-ups today',ico:'◷',badge:followups},
+      {id:'my-leads',  lbl:'My leads',         ico:'≡', badge:(COUNTS.myLeads||0).toLocaleString(), bc:'nb-g'},
+      {id:'followups', lbl:'Follow-ups today',  ico:'◷'},
     ]},
   ];
-
   pages.forEach(sec=>{
     const sh=document.createElement('div');sh.className='nsec';sh.textContent=sec.sec;nb.appendChild(sh);
     sec.items.forEach(it=>{
       const d=document.createElement('div');
       d.className='ni'+(page===it.id?' on':'');
-      d.innerHTML=`<span class="ni-ico">${it.ico}</span>${it.lbl}${it.badge!==undefined?`<span class="nbadge ${it.bc||''}">${it.badge}</span>`:''}`;
-      d.onclick=()=>nav(it.id);nb.appendChild(d);
+      d.innerHTML=`<span class="ni-ico">${it.ico}</span>${it.lbl}`
+        +(it.badge!==undefined?`<span class="nbadge ${it.bc||''}">${it.badge}</span>`:'');
+      d.onclick=()=>nav(it.id);
+      nb.appendChild(d);
     });
   });
-
-  // Sidebar footer: role switcher (dev/demo) + logout
-  const foot=document.getElementById('sb-foot');
-  foot.innerHTML=`
-    <div class="sw-wrap" style="margin-bottom:8px">
-      <button class="sw-tab${appRole==='manager'?' on':''}" onclick="setRole('manager')">Manager</button>
-      <button class="sw-tab${appRole==='recruiter'?' on':''}" onclick="setRole('recruiter')">Recruiter</button>
-    </div>
-    <button style="width:100%;padding:7px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:transparent;cursor:pointer;font-size:11px;color:#94a3b8;font-family:inherit" onclick="doLogout()">Sign out</button>`;
 }
 
 function setRole(r){
-  appRole=r;prevPage='dashboard';page=r==='manager'?'dashboard':'my-leads';render();
+  appRole=r;prevPage='dashboard';
+  page=r==='manager'?'dashboard':'my-leads';
+  document.getElementById('sw-m').classList.toggle('on',r==='manager');
+  document.getElementById('sw-r').classList.toggle('on',r==='recruiter');
+  document.getElementById('sb-badge').textContent=r==='manager'?'Manager':'Recruiter';
+  document.getElementById('sb-badge').className='sb-badge '+(r==='manager'?'bm':'br');
+  render();
 }
 
-function doLogout(){
-  SESSION=null;LEADS=[];appRole='manager';page='dashboard';
-  document.getElementById('app-screen').style.display='none';
-  document.getElementById('login-screen').style.display='block';
-  document.getElementById('li-email').value='';
-  document.getElementById('li-pass').value='';
-  document.getElementById('li-err').textContent='';
-  document.getElementById('li-btn').disabled=false;
-  document.getElementById('li-btn').textContent='Sign in';
-}
-
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════
 // MAIN RENDER
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════
 function render(){
   document.getElementById('sb-name').textContent=SESSION?.name||'—';
   document.getElementById('sb-badge').textContent=appRole==='manager'?'Manager':'Recruiter';
-  document.getElementById('sb-badge').className='sb-role-badge '+(appRole==='manager'?'badge-mgr':'badge-rec');
+  document.getElementById('sb-badge').className='sb-badge '+(appRole==='manager'?'bm':'br');
   document.getElementById('asgbar').classList.remove('on');
   selLeads=new Set();
   navRender();
-  if(page==='dashboard')renderDashboard();
-  else if(page==='all')renderLeadsPage(LEADS,'All leads',true);
-  else if(page==='assign')renderLeadsPage(LEADS.filter(l=>!l.owner),'Assign leads',true);
-  else if(page==='performance')renderPerformance();
-  else if(page==='my-leads')renderLeadsPage(LEADS.filter(l=>l.owner===SESSION?.name),'My leads');
-  else if(page==='followups')renderLeadsPage(LEADS.filter(l=>l.owner===SESSION?.name&&l.followup_date),'Follow-ups today');
-  else if(page==='detail')renderDetail();
+  F={q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],
+     ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
+
+  if(page==='dashboard')    renderDashboard();
+  else if(page==='all')     renderLeadsPage('All leads',true);
+  else if(page==='assign')  renderLeadsPage('Assign leads',true);
+  else if(page==='performance') renderPerformance();
+  else if(page==='my-leads')    renderLeadsPage('My leads');
+  else if(page==='followups')   renderLeadsPage('Follow-ups today');
+  else if(page==='detail')      renderDetail();
 }
+
+// ════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════
+function showLoader(){
+  const c=document.getElementById('leads-tbody');
+  if(c)c.innerHTML=`<tr><td colspan="14" style="padding:32px;text-align:center">
+    <div class="spinner" style="margin:0 auto"></div></td></tr>`;
+}
+function hideLoader(){}
+
+let _toastTimer;
+function toast(msg,isErr=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show'+(isErr?' err':'');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// Load filter options on startup (non-blocking)
+async function initFilterOptions(){
+  await loadFilterOptions();
+}
+
+// Kick off filter options load after login
+const _origLogin = doLogin;
 </script>
 </body>
-</html>// ── LOADING STATE ────────────────────────────────────────────────
-let _loading = false;
-
-// ── API WITH TIMEOUT ─────────────────────────────────────────────
-async function apiWithTimeout(action, body={}, timeoutMs=60000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action, ...body }),
-      signal: controller.signal
-    });
-    clearTimeout(timer);
-    return await res.json();
-  } catch(e) {
-    clearTimeout(timer);
-    return { ok:false, error: e.name==='AbortError' ? 'Request timed out after 60s' : e.message };
-  }
-}
-
-async function api(action, body={}) {
-  return apiWithTimeout(action, body, 60000);
-}
-
-// ── LOAD ALL LEADS in 2-3 calls ───────────────────────────────────
-// Apps Script v3 reads the sheet once per call and returns up to
-// 5000 rows. For 50K leads that is 10 calls max, each taking ~5s.
-// We fire them sequentially with a small gap.
-async function loadLeads() {
-  if (_loading) return;
-  _loading = true;
-  LEADS = [];
-  showLoader('Connecting to database…');
-
-  const pageSize = 5000;
-  let page = 1;
-  let totalPages = 1;
-
-  while (page <= totalPages) {
-    showBanner('Loading leads… ' + (LEADS.length).toLocaleString() + ' so far');
-
-    const params = appRole === 'manager'
-      ? { owner: 'ALL',        page, pageSize }
-      : { owner: SESSION.name, page, pageSize };
-
-    const res = await apiWithTimeout('getLeads', params, 60000);
-
-    if (!res.ok) {
-      toast('Error loading page ' + page + ': ' + (res.error||'unknown'), true);
-      // Show resume option
-      showResumeButton(page, pageSize);
-      break;
-    }
-
-    LEADS = LEADS.concat(res.leads);
-    totalPages = res.totalPages;
-
-    // Update recruiter list
-    const ownerSet = new Set(LEADS.map(l=>l.owner).filter(Boolean));
-    RECRUITERS = [...ownerSet];
-    rebuildAssignDropdown();
-
-    if (page === 1) {
-      // Render immediately after first page so user is not waiting
-      hideBanner();
-      _loading = false;
-      render();
-      _loading = true;
-    } else {
-      updateLeadCount();
-    }
-
-    page++;
-    if (page <= totalPages) await sleep(500); // small gap between calls
-  }
-
-  _loading = false;
-  hideBanner();
-
-  if (page > totalPages) {
-    updateLeadCount();
-    toast('All ' + LEADS.length.toLocaleString() + ' leads loaded ✓');
-    // Re-render current page to show full count
-    if (page > 2) renderCurrentPage();
-  }
-}
-
-async function refreshLeads() {
-  _loading = false;
-  await loadLeads();
-}
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-function updateLeadCount() {
-  document.querySelectorAll('.nb-b').forEach(b => b.textContent = LEADS.length);
-  const rc = document.getElementById('res-count');
-  if (rc && _curLeads.length) {
-    rc.textContent = applyFilters(_curLeads).length + ' of ' + _curLeads.length + ' shown';
-  }
-}
-
-function rebuildAssignDropdown() {
-  const sel = document.getElementById('asg-rec');
-  if (!sel) return;
-  while (sel.options.length > 3) sel.remove(3);
-  RECRUITERS.forEach(r => {
-    const o = document.createElement('option');
-    o.value = r; o.text = r;
-    sel.add(o, 2);
-  });
-}
-
-function showBanner(msg) {
-  let b = document.getElementById('load-banner');
-  if (!b) {
-    b = document.createElement('div');
-    b.id = 'load-banner';
-    b.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:10px;font-size:12px;z-index:998;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.3)';
-    document.body.appendChild(b);
-  }
-  b.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px"></div><span>' + msg + '</span>';
-}
-
-function hideBanner() {
-  const b = document.getElementById('load-banner');
-  if (b) b.remove();
-}
-
-function showResumeButton(fromPage, pageSize) {
-  let b = document.getElementById('load-banner');
-  if (!b) { b = document.createElement('div'); b.id='load-banner'; document.body.appendChild(b); }
-  b.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#f59e0b;color:#1a1a2e;padding:10px 20px;border-radius:10px;font-size:12px;z-index:998;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.2)';
-  b.innerHTML = '<span>⚠ Loaded ' + LEADS.length.toLocaleString() + ' leads — stopped at page ' + fromPage + '</span>' +
-    '<button onclick="hideBanner();loadLeads()" style="background:#1a1a2e;border:none;color:#fff;padding:4px 12px;border-radius:5px;cursor:pointer;font-size:11px">Retry</button>' +
-    '<button onclick="hideBanner()" style="background:rgba(0,0,0,.15);border:none;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:11px">Dismiss</button>';
-}
-
-
-
+</html>
