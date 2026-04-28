@@ -318,38 +318,98 @@ async function doLogin() {
 // ═══════════════════════════════════════════════════════
 // LOAD DATA FROM SHEET
 // ═══════════════════════════════════════════════════════
-async function loadLeads() {
-  showLoader('Loading leads from database…');
+let PAGINATION = { page:1, pageSize:1000, total:0, totalPages:1, loading:false };
+
+async function loadLeads(page=1, append=false) {
+  if (PAGINATION.loading) return;
+  PAGINATION.loading = true;
+
+  if (!append) {
+    showLoader('Loading leads… page ' + page);
+    LEADS = [];
+  }
+
   const params = appRole === 'manager'
-    ? { owner: 'ALL', limit: 2000 }
-    : { owner: SESSION.name, limit: 1000 };
+    ? { owner: 'ALL',         page, pageSize: PAGINATION.pageSize }
+    : { owner: SESSION.name,  page, pageSize: PAGINATION.pageSize };
 
   const res = await api('getLeads', params);
-  if(res.ok) {
-    LEADS = res.leads;
-    // Extract unique recruiters for assign dropdown
-    const ownerSet = new Set(LEADS.map(l=>l.owner).filter(Boolean));
-    RECRUITERS = [...ownerSet];
-    // Rebuild assign dropdown options
-    const sel = document.getElementById('asg-rec');
-    if(sel) {
-      while(sel.options.length > 3) sel.remove(3); // keep first 3 defaults
-      RECRUITERS.forEach(r => {
-        const o = document.createElement('option');
-        o.value = r; o.text = r;
-        sel.add(o, 2); // insert before round-robin
-      });
+
+  if (res.ok) {
+    if (append) {
+      LEADS = LEADS.concat(res.leads);
+    } else {
+      LEADS = res.leads;
     }
+
+    PAGINATION.page       = res.page;
+    PAGINATION.total      = res.total;
+    PAGINATION.totalPages = res.totalPages;
+
+    // Rebuild recruiter list from loaded leads
+    const ownerSet = new Set(LEADS.map(l => l.owner).filter(Boolean));
+    RECRUITERS = [...ownerSet];
+    rebuildAssignDropdown();
+
+    // If there are more pages, load them in background automatically
+    if (res.page < res.totalPages) {
+      PAGINATION.loading = false;
+      loadMoreInBackground(res.page + 1);
+    } else {
+      PAGINATION.loading = false;
+    }
+
   } else {
-    toast('Could not load leads: ' + res.error, true);
+    PAGINATION.loading = false;
+    toast('Could not load leads: ' + (res.error || 'Unknown error'), true);
+  }
+}
+
+// Loads remaining pages silently in background — user can work while this runs
+async function loadMoreInBackground(startPage) {
+  for (let p = startPage; p <= PAGINATION.totalPages; p++) {
+    if (PAGINATION.loading) break; // stop if a manual refresh was triggered
+    await loadLeads(p, true);      // append each page to LEADS array
+    updateLeadCount();             // update sidebar badge and any open table
+    await sleep(300);              // small pause between calls to avoid rate limits
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Updates the lead count badge in sidebar without full re-render
+function updateLeadCount() {
+  const badge = document.querySelector('.ni .nb-b');
+  if (badge) badge.textContent = LEADS.length;
+  // If a leads table is open, refresh the row count display
+  const rc = document.getElementById('res-count');
+  if (rc) {
+    const filtered = applyFilters(_curLeads === LEADS ? LEADS : _curLeads);
+    rc.textContent = filtered.length + ' of ' + _curLeads.length + ' shown';
   }
 }
 
 async function refreshLeads() {
-  await loadLeads();
+  PAGINATION.loading = false; // cancel any background loading
+  PAGINATION.page = 1;
+  LEADS = [];
+  await loadLeads(1, false);
   renderCurrentPage();
-  toast('Leads refreshed from sheet');
+  toast('Leads refreshed — loading all ' + PAGINATION.total + ' records');
 }
+
+function rebuildAssignDropdown() {
+  const sel = document.getElementById('asg-rec');
+  if (!sel) return;
+  // Remove recruiter options (keep first 3: blank, round-robin, unassign)
+  while (sel.options.length > 3) sel.remove(3);
+  RECRUITERS.forEach(r => {
+    const o = document.createElement('option');
+    o.value = r; o.text = r;
+    sel.add(o, 2);
+  });
+}
+
 
 // ═══════════════════════════════════════════════════════
 // TOAST
