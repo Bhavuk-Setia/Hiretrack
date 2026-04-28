@@ -268,23 +268,6 @@ const REC_EDIT   = ['current_city','current_company','standard_role','naukri_job
 // ═══════════════════════════════════════════════════════
 // API CALLS
 // ═══════════════════════════════════════════════════════
-async function apiWithTimeout(action, body={}, timeoutMs=30000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action, ...body }),
-      signal: controller.signal
-    });
-    clearTimeout(timer);
-    return await res.json();
-  } catch(e) {
-    clearTimeout(timer);
-    return { ok: false, error: e.name === 'AbortError' ? 'Request timed out' : e.message };
-  }
-}
-
 async function api(action, body={}) {
   return apiWithTimeout(action, body, 30000);
 }
@@ -924,121 +907,11 @@ function render(){
 }
 </script>
 </body>
-</html>// ── PAGINATION STATE ─────────────────────────────────────────────
-let PAGINATION = {
-  page: 1, pageSize: 2000, total: 0,
-  totalPages: 1, loading: false, cancelled: false
-};
+</html>// ── LOADING STATE ────────────────────────────────────────────────
+let _loading = false;
 
-// ── LOAD LEADS (paginated, with retry + timeout) ──────────────────
-async function loadLeads(page=1, append=false) {
-  if (PAGINATION.loading && !append) return;
-  PAGINATION.loading   = true;
-  PAGINATION.cancelled = false;
-
-  if (!append) {
-    showLoader('Connecting to database…');
-    LEADS = [];
-  }
-
-  const params = appRole === 'manager'
-    ? { owner: 'ALL',        page, pageSize: PAGINATION.pageSize }
-    : { owner: SESSION.name, page, pageSize: PAGINATION.pageSize };
-
-  // Retry up to 3 times before giving up on this page
-  let res = null;
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    res = await apiWithTimeout('getLeads', params, 30000);
-    if (res.ok) break;
-    if (attempt < 3) {
-      await sleep(2000 * attempt); // back off: 2s, 4s
-    }
-  }
-
-  if (!res || !res.ok) {
-    PAGINATION.loading = false;
-    toast('Failed to load leads. Please refresh.', true);
-    updateLoadingBanner(false);
-    return;
-  }
-
-  if (append) {
-    LEADS = LEADS.concat(res.leads);
-  } else {
-    LEADS = res.leads;
-  }
-
-  PAGINATION.page       = res.page;
-  PAGINATION.total      = res.total;
-  PAGINATION.totalPages = res.totalPages;
-
-  rebuildAssignDropdown();
-  updateLeadCount();
-
-  if (!append) {
-    // First page loaded — render immediately so user can work
-    render();
-  }
-
-  if (res.page < res.totalPages && !PAGINATION.cancelled) {
-    // Show progress banner
-    updateLoadingBanner(true, res.page, res.totalPages, LEADS.length, res.total);
-    PAGINATION.loading = false;
-    await sleep(1500); // wait 1.5s between pages — avoids Apps Script rate limit
-    loadMoreInBackground(res.page + 1);
-  } else {
-    PAGINATION.loading = false;
-    updateLoadingBanner(false);
-    toast('All ' + LEADS.length + ' leads loaded');
-  }
-}
-
-async function loadMoreInBackground(startPage) {
-  for (let p = startPage; p <= PAGINATION.totalPages; p++) {
-    if (PAGINATION.cancelled) break;
-
-    PAGINATION.loading = true;
-    const params = appRole === 'manager'
-      ? { owner: 'ALL',        page: p, pageSize: PAGINATION.pageSize }
-      : { owner: SESSION.name, page: p, pageSize: PAGINATION.pageSize };
-
-    let res = null;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      res = await apiWithTimeout('getLeads', params, 30000);
-      if (res && res.ok) break;
-      if (attempt < 3) await sleep(3000 * attempt);
-    }
-
-    if (!res || !res.ok) {
-      // Failed after retries — stop background loading, show resume button
-      PAGINATION.loading = false;
-      updateLoadingBanner(false, p);
-      showResumeButton(p);
-      return;
-    }
-
-    LEADS = LEADS.concat(res.leads);
-    PAGINATION.page = res.page;
-    rebuildAssignDropdown();
-    updateLeadCount();
-    updateLoadingBanner(true, res.page, res.totalPages, LEADS.length, res.total);
-
-    PAGINATION.loading = false;
-
-    if (p < PAGINATION.totalPages && !PAGINATION.cancelled) {
-      await sleep(1500); // pause between pages
-    }
-  }
-
-  if (!PAGINATION.cancelled) {
-    updateLoadingBanner(false);
-    updateLeadCount();
-    toast('All ' + LEADS.length + ' leads loaded ✓');
-  }
-}
-
-// API call with a hard timeout so it never hangs forever
-async function apiWithTimeout(action, body={}, timeoutMs=30000) {
+// ── API WITH TIMEOUT ─────────────────────────────────────────────
+async function apiWithTimeout(action, body={}, timeoutMs=60000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -1051,74 +924,127 @@ async function apiWithTimeout(action, body={}, timeoutMs=30000) {
     return await res.json();
   } catch(e) {
     clearTimeout(timer);
-    return { ok: false, error: e.name === 'AbortError' ? 'Request timed out' : e.message };
+    return { ok:false, error: e.name==='AbortError' ? 'Request timed out after 60s' : e.message };
+  }
+}
+
+async function api(action, body={}) {
+  return apiWithTimeout(action, body, 60000);
+}
+
+// ── LOAD ALL LEADS in 2-3 calls ───────────────────────────────────
+// Apps Script v3 reads the sheet once per call and returns up to
+// 5000 rows. For 50K leads that is 10 calls max, each taking ~5s.
+// We fire them sequentially with a small gap.
+async function loadLeads() {
+  if (_loading) return;
+  _loading = true;
+  LEADS = [];
+  showLoader('Connecting to database…');
+
+  const pageSize = 5000;
+  let page = 1;
+  let totalPages = 1;
+
+  while (page <= totalPages) {
+    showBanner('Loading leads… ' + (LEADS.length).toLocaleString() + ' so far');
+
+    const params = appRole === 'manager'
+      ? { owner: 'ALL',        page, pageSize }
+      : { owner: SESSION.name, page, pageSize };
+
+    const res = await apiWithTimeout('getLeads', params, 60000);
+
+    if (!res.ok) {
+      toast('Error loading page ' + page + ': ' + (res.error||'unknown'), true);
+      // Show resume option
+      showResumeButton(page, pageSize);
+      break;
+    }
+
+    LEADS = LEADS.concat(res.leads);
+    totalPages = res.totalPages;
+
+    // Update recruiter list
+    const ownerSet = new Set(LEADS.map(l=>l.owner).filter(Boolean));
+    RECRUITERS = [...ownerSet];
+    rebuildAssignDropdown();
+
+    if (page === 1) {
+      // Render immediately after first page so user is not waiting
+      hideBanner();
+      _loading = false;
+      render();
+      _loading = true;
+    } else {
+      updateLeadCount();
+    }
+
+    page++;
+    if (page <= totalPages) await sleep(500); // small gap between calls
+  }
+
+  _loading = false;
+  hideBanner();
+
+  if (page > totalPages) {
+    updateLeadCount();
+    toast('All ' + LEADS.length.toLocaleString() + ' leads loaded ✓');
+    // Re-render current page to show full count
+    if (page > 2) renderCurrentPage();
   }
 }
 
 async function refreshLeads() {
-  PAGINATION.cancelled = true;   // stop any background loading
-  PAGINATION.loading   = false;
-  await sleep(200);              // let in-flight calls settle
-  PAGINATION.cancelled = false;
-  PAGINATION.page      = 1;
-  LEADS = [];
-  await loadLeads(1, false);
+  _loading = false;
+  await loadLeads();
 }
 
-// ── PROGRESS BANNER ───────────────────────────────────────────────
-function updateLoadingBanner(show, curPage=0, totalPages=0, loaded=0, total=0) {
-  let banner = document.getElementById('load-banner');
-  if (!show) { if (banner) banner.remove(); return; }
-  if (!banner) {
-    banner = document.createElement('div');
-    banner.id = 'load-banner';
-    banner.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:10px;font-size:12px;z-index:998;display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.3)';
-    document.body.appendChild(banner);
-  }
-  const pct = total ? Math.round(loaded/total*100) : 0;
-  banner.innerHTML = `
-    <div style="width:120px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;overflow:hidden">
-      <div style="height:100%;width:${pct}%;background:#4361ee;border-radius:2px;transition:width .3s"></div>
-    </div>
-    <span>Loading ${loaded.toLocaleString()} of ${total.toLocaleString()} leads (${pct}%)</span>
-    <button onclick="PAGINATION.cancelled=true;updateLoadingBanner(false)" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:11px">Stop</button>`;
-}
-
-function showResumeButton(fromPage) {
-  let banner = document.getElementById('load-banner');
-  if (!banner) {
-    banner = document.createElement('div');
-    banner.id = 'load-banner';
-    banner.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#f59e0b;color:#1a1a2e;padding:10px 20px;border-radius:10px;font-size:12px;z-index:998;display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.2)';
-    document.body.appendChild(banner);
-  }
-  banner.innerHTML = `
-    <span>⚠ Loading paused at ${LEADS.length.toLocaleString()} leads</span>
-    <button onclick="PAGINATION.cancelled=false;loadMoreInBackground(${fromPage});this.closest('#load-banner').remove()" style="background:#1a1a2e;border:none;color:#fff;padding:4px 12px;border-radius:5px;cursor:pointer;font-size:11px">Resume</button>
-    <button onclick="updateLoadingBanner(false)" style="background:rgba(0,0,0,.15);border:none;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:11px">Dismiss</button>`;
-}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function updateLeadCount() {
-  const badges = document.querySelectorAll('.nb-b');
-  badges.forEach(b => b.textContent = LEADS.length);
+  document.querySelectorAll('.nb-b').forEach(b => b.textContent = LEADS.length);
   const rc = document.getElementById('res-count');
   if (rc && _curLeads.length) {
     rc.textContent = applyFilters(_curLeads).length + ' of ' + _curLeads.length + ' shown';
   }
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
 function rebuildAssignDropdown() {
   const sel = document.getElementById('asg-rec');
   if (!sel) return;
   while (sel.options.length > 3) sel.remove(3);
-  RECRUITERS = [...new Set(LEADS.map(l => l.owner).filter(Boolean))];
   RECRUITERS.forEach(r => {
     const o = document.createElement('option');
     o.value = r; o.text = r;
     sel.add(o, 2);
   });
 }
+
+function showBanner(msg) {
+  let b = document.getElementById('load-banner');
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'load-banner';
+    b.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:10px;font-size:12px;z-index:998;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.3)';
+    document.body.appendChild(b);
+  }
+  b.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px"></div><span>' + msg + '</span>';
+}
+
+function hideBanner() {
+  const b = document.getElementById('load-banner');
+  if (b) b.remove();
+}
+
+function showResumeButton(fromPage, pageSize) {
+  let b = document.getElementById('load-banner');
+  if (!b) { b = document.createElement('div'); b.id='load-banner'; document.body.appendChild(b); }
+  b.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#f59e0b;color:#1a1a2e;padding:10px 20px;border-radius:10px;font-size:12px;z-index:998;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.2)';
+  b.innerHTML = '<span>⚠ Loaded ' + LEADS.length.toLocaleString() + ' leads — stopped at page ' + fromPage + '</span>' +
+    '<button onclick="hideBanner();loadLeads()" style="background:#1a1a2e;border:none;color:#fff;padding:4px 12px;border-radius:5px;cursor:pointer;font-size:11px">Retry</button>' +
+    '<button onclick="hideBanner()" style="background:rgba(0,0,0,.15);border:none;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:11px">Dismiss</button>';
+}
+
 
 
