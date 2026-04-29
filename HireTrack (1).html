@@ -214,6 +214,7 @@ textarea.fi-full{resize:vertical;min-height:64px}
 // ════════════════════════════════════════════════════
 const SB_URL = 'https://esgyriktdmlqnestbysl.supabase.co';       // e.g. https://xxxx.supabase.co
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZ3lyaWt0ZG1scW5lc3RieXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODAxODksImV4cCI6MjA5Mjk1NjE4OX0.BP8wrpjLhTNuUfmzWIiklaOVeV9Fzm97Xo2gW9vmrT8';  // long string from Settings → API
+
 // ════════════════════════════════════════════════════
 // SUPABASE API WRAPPER
 // Direct REST calls — no SDK needed
@@ -386,7 +387,7 @@ function doLogout(){
 async function loadCounts() {
   const promises = [
     SB.count('leads'),
-    SB.count('leads', ['owner=eq.']),
+    SB.count('leads', ['or=(owner.eq.,owner.is.null)']),
     SB.count('leads', ['status=in.(Interested,Shortlisted)'])
   ];
   if(appRole==='recruiter') {
@@ -418,7 +419,7 @@ function buildFilters() {
   const filters = [];
 
   // Page-level filters
-  if(page === 'assign')    filters.push('owner=eq.');
+  if(page === 'assign')    filters.push('or=(owner.eq.,owner.is.null)');
   if(page === 'my-leads' || page === 'followups')
     filters.push(`owner=eq.${encodeURIComponent(SESSION.name)}`);
   if(page === 'followups') filters.push('followup_date=not.is.null');
@@ -917,7 +918,7 @@ async function loadDashboardDetails(){
     }))),
     // Recent unassigned leads
     SB.select('leads',{
-      filters:['owner=eq.'],
+      filters:['or=(owner.eq.,owner.is.null)'],
       order:'create_date.desc',
       limit:6
     }),
@@ -963,7 +964,7 @@ async function loadDashboardDetails(){
     <td style="font-family:monospace">${r.called.toLocaleString()}</td>
     <td style="font-family:monospace">${r.interested.toLocaleString()}</td>
     <td><button class="btn" style="font-size:11px;padding:3px 10px"
-      onclick="F={...F};F.owners=['${r.name}'];page='all';render()">View</button></td>
+      onclick="viewRecruiterLeads('${r.name}')">View</button></td>
   </tr>`).join('')
   :`<tr><td colspan="5" style="padding:16px;text-align:center;color:#aaa">No recruiters yet</td></tr>`}
   </tbody></table></div></div></div>
@@ -1013,9 +1014,20 @@ async function renderPerformance(){
       Promise.all(allStatuses.map(s =>
         SB.count('leads',[`owner=eq.${encodeURIComponent(r)}`,`status=eq.${encodeURIComponent(s)}`])
       )),
-      Promise.all(callOutcomes.map(o =>
-        SB.count('leads',[`owner=eq.${encodeURIComponent(r)}`,`last_call_outcome=eq.${encodeURIComponent(o)}`])
-      )),
+      Promise.all(callOutcomes.map(o => {
+        if(o === 'Not Called') {
+          // Count leads where last_call_outcome is empty string OR null
+          // These are leads that have never been called
+          return SB.count('leads',[
+            `owner=eq.${encodeURIComponent(r)}`,
+            `or=(last_call_outcome.eq.,last_call_outcome.is.null)`
+          ]);
+        }
+        return SB.count('leads',[
+          `owner=eq.${encodeURIComponent(r)}`,
+          `last_call_outcome=eq.${encodeURIComponent(o)}`
+        ]);
+      })),
       SB.count('leads',[`owner=eq.${encodeURIComponent(r)}`])
     ]);
     return { r, total, statusCounts, callCounts };
@@ -1366,6 +1378,8 @@ function navRender(){
 }
 
 function setRole(r){
+  // Recruiters cannot switch to manager view
+  if(SESSION && SESSION.role === 'recruiter') r = 'recruiter';
   appRole=r;prevPage='dashboard';
   page=r==='manager'?'dashboard':'my-leads';
   document.getElementById('sw-m').classList.toggle('on',r==='manager');
@@ -1378,7 +1392,24 @@ function setRole(r){
 // ════════════════════════════════════════════════════
 // MAIN RENDER
 // ════════════════════════════════════════════════════
+// Navigate to All Leads filtered by a specific recruiter
+// Sets filter AFTER render so it doesn't get wiped by render()'s F reset
+function viewRecruiterLeads(name) {
+  page = 'all';
+  prevPage = 'dashboard';
+  render();
+  // Apply owner filter after render has set up the page
+  setTimeout(() => {
+    F.owners = [name];
+    loadLeads(0);
+    const btn = document.querySelector('#msw-owners .ms-btn');
+    if(btn) { btn.classList.add('on'); btn.querySelector('span').textContent = 'Owner (1)'; }
+  }, 100);
+}
+
 function render(){
+  // Always enforce role from session — prevents role drift
+  if(SESSION) appRole = SESSION.role;
   document.getElementById('sb-name').textContent=SESSION?.name||'—';
   document.getElementById('sb-badge').textContent=appRole==='manager'?'Manager':'Recruiter';
   document.getElementById('sb-badge').className='sb-badge '+(appRole==='manager'?'bm':'br');
@@ -1427,4 +1458,3 @@ const _origLogin = doLogin;
 </script>
 </body>
 </html>
-
