@@ -178,7 +178,7 @@ textarea.fi-full{resize:vertical;min-height:64px}
     </div>
     <div class="sb-nav" id="sb-nav"></div>
     <div class="sb-foot">
-      <div class="sw-wrap">
+      <div class="sw-wrap" id="sw-wrap" style="display:none">
         <button class="sw-tab on" id="sw-m" onclick="setRole('manager')">Manager</button>
         <button class="sw-tab" id="sw-r" onclick="setRole('recruiter')">Recruiter</button>
       </div>
@@ -220,79 +220,73 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 // Direct REST calls — no SDK needed
 // ════════════════════════════════════════════════════
 const SB = {
-  // SELECT with filters, ordering, pagination
+  // ── SELECT rows with server-side filtering + pagination ──────────
   async select(table, { select='*', filters=[], order='', limit=100, offset=0 }={}) {
     let url = `${SB_URL}/rest/v1/${table}?select=${select}`;
-    filters.forEach(f => url += `&${f}`);
+    filters.forEach(f => { if(f) url += '&'+f; });
     if(order)  url += `&order=${order}`;
-    url += `&limit=${limit}`;
-    if(offset) url += `&offset=${offset}`;
+    url += `&limit=${limit}&offset=${offset}`;
     const r = await fetch(url, {
       headers: {
-        'apikey': SB_KEY,
+        'apikey':        SB_KEY,
         'Authorization': `Bearer ${SB_KEY}`,
-        'Range-Unit': 'items',
-        'Range': `${offset}-${offset+limit-1}`,
-        'Prefer': 'count=exact'
+        'Content-Type':  'application/json'
       }
     });
     const data = await r.json();
-    const total = parseInt(r.headers.get('content-range')?.split('/')[1]||'0');
-    return { data: Array.isArray(data)?data:[], total, ok: r.ok };
+    return { data: Array.isArray(data)?data:[], ok: r.ok };
   },
 
-  // INSERT one or many rows
+  // ── COUNT rows — HEAD request, no rows fetched ───────────────────
+  // Returns the true total from content-range header
+  async count(table, filters=[]) {
+    let url = `${SB_URL}/rest/v1/${table}?select=lead_id`;
+    filters.forEach(f => { if(f) url += '&'+f; });
+    try {
+      const r = await fetch(url, {
+        method: 'HEAD',
+        headers: {
+          'apikey':        SB_KEY,
+          'Authorization': `Bearer ${SB_KEY}`,
+          'Range-Unit':    'items',
+          'Prefer':        'count=exact'
+        }
+      });
+      const cr = r.headers.get('content-range')||'';
+      return cr.includes('/') ? parseInt(cr.split('/')[1])||0 : 0;
+    } catch(e) { return 0; }
+  },
+
+  // ── INSERT one or many rows ──────────────────────────────────────
   async insert(table, rows) {
     const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
       method: 'POST',
       headers: {
-        'apikey': SB_KEY,
+        'apikey':        SB_KEY,
         'Authorization': `Bearer ${SB_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
+        'Content-Type':  'application/json',
+        'Prefer':        'return=minimal'
       },
       body: JSON.stringify(Array.isArray(rows)?rows:[rows])
     });
     return { ok: r.ok, status: r.status };
   },
 
-  // UPDATE rows matching filters
+  // ── UPDATE rows matching filters ─────────────────────────────────
   async update(table, data, filters=[]) {
     let url = `${SB_URL}/rest/v1/${table}?`;
-    filters.forEach(f => url += `${f}&`);
+    filters.forEach(f => { if(f) url += f+'&'; });
     const r = await fetch(url, {
       method: 'PATCH',
       headers: {
-        'apikey': SB_KEY,
+        'apikey':        SB_KEY,
         'Authorization': `Bearer ${SB_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
+        'Content-Type':  'application/json',
+        'Prefer':        'return=minimal'
       },
       body: JSON.stringify(data)
     });
     return { ok: r.ok, status: r.status };
-  },
-
-  // COUNT rows matching filters
-  async count(table, filters=[]) {
-    // HEAD + count=exact returns true total without fetching any rows
-    // This bypasses Supabase row limits entirely
-    let url = `${SB_URL}/rest/v1/${table}?select=*`;
-    filters.forEach(f => url += `&${f}`);
-    try {
-      const r = await fetch(url, {
-        method: 'HEAD',
-        headers: {
-          'apikey': SB_KEY,
-          'Authorization': `Bearer ${SB_KEY}`,
-          'Range-Unit': 'items',
-          'Prefer': 'count=exact'
-        }
-      });
-      const cr = r.headers.get('content-range');
-      if(cr && cr.includes('/')) return parseInt(cr.split('/')[1])||0;
-      return 0;
-    } catch(e) { return 0; }
   }
 };
 
@@ -363,8 +357,11 @@ async function doLogin() {
     appRole  = u.role;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-screen').style.display   = 'block';
-    await loadCounts();
-    await loadRecruiters();
+    // Only show role switcher to managers (for dev/demo purposes)
+    if(u.role === 'manager') {
+      document.getElementById('sw-wrap').style.display = 'flex';
+    }
+    await Promise.all([loadCounts(), loadRecruiters(), loadFilterOptions()]);
     render();
   } else {
     err.textContent = 'Incorrect email or password.';
@@ -471,25 +468,25 @@ async function loadLeads(offset=0) {
   showLoader();
   const filters = buildFilters();
 
-  // Run count and data fetch in parallel
-  const [countResult, res] = await Promise.all([
-    SB.count('leads', filters),
+  // Fetch data and count in parallel
+  const [res, total] = await Promise.all([
     SB.select('leads', {
       filters,
       order: 'create_date.desc',
-      limit: PAGE_SIZE,
+      limit:  PAGE_SIZE,
       offset
-    })
+    }),
+    SB.count('leads', filters)
   ]);
 
   if(res.ok) {
-    LEADS      = res.data;
-    _pgTotal   = countResult;   // use real count, not capped content-range
-    _pgOffset  = offset;
-    _pgFilters = filters;
+    LEADS     = res.data;
+    _pgTotal  = total;
+    _pgOffset = offset;
     renderLeadsTable();
   } else {
-    toast('Error loading leads', true);
+    toast('Error loading leads — check console', true);
+    console.error('Supabase error:', res);
     hideLoader();
   }
 }
@@ -655,20 +652,22 @@ function getArr(id){
 let _msOpts = {roles:[],cities:[],industries:[],depts:[],sources:[]};
 
 async function loadFilterOptions() {
-  // Load distinct values for dropdowns — fast distinct queries
-  const [roles,cities,inds,depts,sources] = await Promise.all([
-    SB.select('leads',{select:'standard_role',limit:200}),
-    SB.select('leads',{select:'current_city',limit:500}),
-    SB.select('leads',{select:'industry',limit:200}),
-    SB.select('leads',{select:'department',limit:200}),
-    SB.select('leads',{select:'source_channel',limit:50}),
+  // Fetch enough rows to get all distinct values
+  // Using high limit to capture all unique values across 50K records
+  const [roles, cities, inds, depts, sources] = await Promise.all([
+    SB.select('leads', { select:'standard_role', limit:50000 }),
+    SB.select('leads', { select:'current_city',  limit:50000 }),
+    SB.select('leads', { select:'industry',      limit:50000 }),
+    SB.select('leads', { select:'department',    limit:50000 }),
+    SB.select('leads', { select:'source_channel',limit:50000 }),
   ]);
-  const uniq = (res,key) => [...new Set((res.data||[]).map(r=>r[key]).filter(Boolean))].sort();
-  _msOpts.roles    = uniq(roles,   'standard_role');
-  _msOpts.cities   = uniq(cities,  'current_city');
-  _msOpts.industries=uniq(inds,   'industry');
-  _msOpts.depts    = uniq(depts,   'department');
-  _msOpts.sources  = uniq(sources, 'source_channel');
+  const uniq = (res, key) =>
+    [...new Set((res.data||[]).map(r => r[key]).filter(Boolean))].sort();
+  _msOpts.roles      = uniq(roles,   'standard_role');
+  _msOpts.cities     = uniq(cities,  'current_city');
+  _msOpts.industries = uniq(inds,    'industry');
+  _msOpts.depts      = uniq(depts,   'department');
+  _msOpts.sources    = uniq(sources, 'source_channel');
 }
 
 function msHTML(id) {
@@ -795,32 +794,43 @@ async function doAssign(){
   btn.disabled=true;btn.textContent='Saving…';
 
   let updated=0;
+  const BATCH=100; // Supabase handles 100 IDs in IN clause fine
+
   if(rec==='__none__'){
-    // Unassign in batches of 50
-    for(let i=0;i<ids.length;i+=50){
-      const batch=ids.slice(i,i+50);
-      await SB.update('leads',{owner:''}, [`lead_id=in.(${batch.join(',')})`]);
+    // Bulk unassign — set owner to empty string
+    for(let i=0;i<ids.length;i+=BATCH){
+      const batch=ids.slice(i,i+BATCH);
+      const r=await SB.update('leads',{owner:''},
+        [`lead_id=in.(${batch.join(',')})`]);
       updated+=batch.length;
+      btn.textContent=`Saving… ${updated}/${ids.length}`;
     }
   } else if(rec==='__rr__'){
-    // Round-robin — assign one by one
-    for(let i=0;i<ids.length;i++){
-      const owner=RECRUITERS[i%RECRUITERS.length];
-      await SB.update('leads',{owner},
-        [`lead_id=eq.${ids[i]}`]);
-      updated++;
+    // Round-robin across recruiters
+    for(let i=0;i<ids.length;i+=BATCH){
+      const batch=ids.slice(i,i+BATCH);
+      // Assign each in batch to recruiter based on index
+      const updates=batch.map((id,j)=>
+        SB.update('leads',{owner:RECRUITERS[(i+j)%RECRUITERS.length]},
+          [`lead_id=eq.${id}`])
+      );
+      await Promise.all(updates);
+      updated+=batch.length;
+      btn.textContent=`Saving… ${updated}/${ids.length}`;
     }
   } else {
-    // Assign all to one recruiter
-    for(let i=0;i<ids.length;i+=50){
-      const batch=ids.slice(i,i+50);
+    // Assign all to one recruiter in batches
+    for(let i=0;i<ids.length;i+=BATCH){
+      const batch=ids.slice(i,i+BATCH);
       await SB.update('leads',{owner:rec},
         [`lead_id=in.(${batch.join(',')})`]);
       updated+=batch.length;
+      btn.textContent=`Saving… ${updated}/${ids.length}`;
     }
   }
 
-  toast(updated+' lead'+(updated>1?'s':'')+' updated');
+  const action = rec==='__none__'?'unassigned':'assigned';
+  toast(updated+' lead'+(updated>1?'s':'')+' '+action+' ✓');
   clearSel();
   btn.disabled=false;btn.textContent='Confirm';
   document.getElementById('asg-rec').value='';
@@ -1028,34 +1038,48 @@ async function saveCall(lid){
   const btn=document.getElementById('call-save-btn');
   if(btn){btn.disabled=true;btn.textContent='Saving…';}
 
-  const newStatus    = document.getElementById('fo-st').value;
-  const shortlisted  = document.getElementById('fo-client').value;
-  const followupDate = document.getElementById('fo-date').value||null;
+  const callOutcome   = document.getElementById('fo-out').value;
+  const newStatus     = document.getElementById('fo-st').value;
+  const englishProf   = document.getElementById('fo-eng').value;
+  const notes         = document.getElementById('fo-notes').value;
+  const followupDate  = document.getElementById('fo-date').value||null;
+  const shortlisted   = document.getElementById('fo-client').value;
+  const today         = new Date().toISOString().slice(0,10);
 
-  // Insert call log
-  const today = new Date().toISOString().slice(0,10);
+  // 1. Insert into call_log
   const logId = 'LOG-'+Date.now();
   await SB.insert('call_log',{
-    log_id:      logId,
-    lead_id:     lid,
-    recruiter_name: SESSION.name,
-    call_date:   today,
-    call_outcome: document.getElementById('fo-out').value,
-    english_proficiency: document.getElementById('fo-eng').value,
-    notes:       document.getElementById('fo-notes').value,
-    followup_date: followupDate
+    log_id:             logId,
+    lead_id:            lid,
+    recruiter_name:     SESSION.name,
+    call_date:          today,
+    call_outcome:       callOutcome,
+    english_proficiency:englishProf,
+    notes:              notes,
+    followup_date:      followupDate
   });
 
-  // Update lead status + shortlisted_for
+  // 2. Update lead — status, shortlisted_for, followup_date
+  //    AND store last call outcome + date directly on lead
+  //    so it shows in the table without opening call history
   await SB.update('leads',{
-    status:         newStatus,
-    shortlisted_for:shortlisted,
-    followup_date:  followupDate
+    status:              newStatus,
+    shortlisted_for:     shortlisted,
+    followup_date:       followupDate,
+    last_call_outcome:   callOutcome,
+    last_call_date:      today,
+    last_call_notes:     notes,
+    english_proficiency: englishProf
   },[`lead_id=eq.${lid}`]);
 
-  l.status=newStatus;
-  l.shortlisted_for=shortlisted;
-  l.followup_date=followupDate;
+  // 3. Update local state so UI reflects immediately without re-fetch
+  l.status             = newStatus;
+  l.shortlisted_for    = shortlisted;
+  l.followup_date      = followupDate;
+  l.last_call_outcome  = callOutcome;
+  l.last_call_date     = today;
+  l.last_call_notes    = notes;
+  l.english_proficiency= englishProf;
 
   toast('Call logged ✓');
   if(btn){btn.disabled=false;btn.textContent='Save call log';}
@@ -1177,7 +1201,7 @@ async function renderDetail(){
           <div class="fr"><label class="fl">Call outcome</label>
             <select class="fi-full" id="fo-out">
               ${['Not Called','Interested','Not Interested','Not Reachable',
-                 'Callback Requested','Wrong Number'].map(o=>`<option>${o}</option>`).join('')}
+                 'Callback Requested','Wrong Number'].map(o=>`<option${(l.last_call_outcome||'')=== o?' selected':''}>${o}</option>`).join('')}
             </select></div>
           <div class="fr"><label class="fl">Status</label>
             <select class="fi-full" id="fo-st">
@@ -1186,11 +1210,13 @@ async function renderDetail(){
         </div>
         <div class="fr"><label class="fl">English proficiency</label>
           <select class="fi-full" id="fo-eng">
-            <option value="">— not assessed</option>
-            <option>Poor</option><option>Average</option><option>Good</option>
+            <option value=""${!(l.english_proficiency||'')?'selected':''}>— not assessed</option>
+            <option${(l.english_proficiency||'')==='Poor'?' selected':''}>Poor</option>
+            <option${(l.english_proficiency||'')==='Average'?' selected':''}>Average</option>
+            <option${(l.english_proficiency||'')==='Good'?' selected':''}>Good</option>
           </select></div>
         <div class="fr"><label class="fl">Notes</label>
-          <textarea class="fi-full" id="fo-notes" placeholder="What was discussed…"></textarea></div>
+          <textarea class="fi-full" id="fo-notes" placeholder="What was discussed…">${l.last_call_notes||''}</textarea></div>
         <div class="fr"><label class="fl">Follow-up date</label>
           <input type="date" class="fi-full" id="fo-date"
             value="${l.followup_date||''}"></div>
@@ -1299,3 +1325,4 @@ const _origLogin = doLogin;
 </script>
 </body>
 </html>
+
