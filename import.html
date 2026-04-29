@@ -190,11 +190,12 @@ input[type=file]{display:none}
           <div class="dz-file" id="dz-filename"></div>
         </div>
         <input type="file" id="file-input" accept=".xlsx,.xls" onchange="fileSelected(this)">
-        <div style="margin-top:14px" id="step1-btn-row" class="btn-row" style="display:none">
-          <button class="btn pri" id="process-btn" onclick="processFile()" disabled>
+        <div style="margin-top:14px;display:flex;align-items:center;gap:10px" id="step1-btn-row">
+          <button class="btn pri" id="process-btn" onclick="processFile()" disabled
+            style="opacity:0.4;cursor:not-allowed">
             ⚙ Clean &amp; analyse file
           </button>
-          <span style="font-size:12px;color:#888" id="step1-hint"></span>
+          <span style="font-size:12px;color:#888" id="step1-hint">Upload a file to continue</span>
         </div>
       </div>
     </div>
@@ -457,11 +458,16 @@ function loadFile(file) {
   const dz = document.getElementById('drop-zone');
   dz.classList.add('has-file');
   document.getElementById('dz-filename').textContent = '✓ ' + file.name;
-  document.getElementById('dz-title').textContent = 'File loaded';
-  document.getElementById('dz-sub').textContent = 'Click "Clean & analyse file" to continue';
-  document.getElementById('process-btn').disabled = false;
-  document.getElementById('step1-hint').textContent = file.name;
-  document.getElementById('step1-btn-row').style.display = 'flex';
+  document.getElementById('dz-title').textContent = 'File loaded — ready to process';
+  document.getElementById('dz-sub').textContent = 'Click "Clean & analyse file" below to continue';
+
+  // Enable the button
+  const btn = document.getElementById('process-btn');
+  btn.disabled = false;
+  btn.style.opacity = '1';
+  btn.style.cursor  = 'pointer';
+
+  document.getElementById('step1-hint').textContent = file.name + ' — ready';
 }
 
 // ════════════════════════════════════════════════════
@@ -956,9 +962,12 @@ function resetTool() {
   document.getElementById('dz-filename').textContent='';
   document.getElementById('dz-title').textContent='Drop your Naukri Excel here';
   document.getElementById('dz-sub').textContent='or click to browse · .xlsx or .xls files only';
-  document.getElementById('process-btn').disabled=true;
-  document.getElementById('process-btn').textContent='⚙ Clean & analyse file';
-  document.getElementById('step1-hint').textContent='';
+  const btn = document.getElementById('process-btn');
+  btn.disabled=true;
+  btn.style.opacity='0.4';
+  btn.style.cursor='not-allowed';
+  btn.textContent='⚙ Clean & analyse file';
+  document.getElementById('step1-hint').textContent='Upload a file to continue';
   document.getElementById('file-input').value='';
   ['upd-card','dup-card','quar-card'].forEach(id=>{
     document.getElementById(id).style.display='none';
