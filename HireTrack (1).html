@@ -195,7 +195,7 @@ textarea.fi-full{resize:vertical;min-height:64px}
       <select class="asg-sel" id="asg-rec" onchange="updateAsgBar()">
         <option value="">— pick recruiter —</option>
         <option value="__rr__">Round-robin (auto)</option>
-        <option value="__none__">Unassign</option>
+        <option value="__none__">⊘ Unassign selected leads</option>
       </select>
       <button class="btn pri" id="asg-btn" onclick="doAssign()" disabled>Confirm</button>
       <button class="btn" onclick="clearSel()">Cancel</button>
@@ -214,7 +214,6 @@ textarea.fi-full{resize:vertical;min-height:64px}
 // ════════════════════════════════════════════════════
 const SB_URL = 'https://esgyriktdmlqnestbysl.supabase.co';       // e.g. https://xxxx.supabase.co
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZ3lyaWt0ZG1scW5lc3RieXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODAxODksImV4cCI6MjA5Mjk1NjE4OX0.BP8wrpjLhTNuUfmzWIiklaOVeV9Fzm97Xo2gW9vmrT8';  // long string from Settings → API
-
 // ════════════════════════════════════════════════════
 // SUPABASE API WRAPPER
 // Direct REST calls — no SDK needed
@@ -325,6 +324,7 @@ const REC_EDIT = ['current_city','current_company','standard_role','naukri_job_t
 let F = {
   q:'', roles:[], statuses:[], cities:[], industries:[],
   depts:[], sources:[], owners:[],
+  call_outcomes:[], eng_levels:[],
   ctc_op:'between', ctc_a:'', ctc_b:'',
   exp_op:'between', exp_a:'', exp_b:''
 };
@@ -405,7 +405,8 @@ async function loadRecruiters() {
     limit: 50
   });
   if(res.ok) {
-    RECRUITERS = res.data.map(u => u.name);
+    // Deduplicate in case of duplicate user rows
+    RECRUITERS = [...new Set(res.data.map(u => u.name).filter(Boolean))].sort();
     rebuildAsgDrop();
   }
 }
@@ -432,7 +433,9 @@ function buildFilters() {
   if(F.cities.length)    filters.push(`current_city=in.(${F.cities.map(encodeURIComponent).join(',')})`);
   if(F.industries.length)filters.push(`industry=in.(${F.industries.map(encodeURIComponent).join(',')})`);
   if(F.depts.length)     filters.push(`department=in.(${F.depts.map(encodeURIComponent).join(',')})`);
-  if(F.sources.length)   filters.push(`source_channel=in.(${F.sources.map(encodeURIComponent).join(',')})`);
+  if(F.sources.length)       filters.push(`source_channel=in.(${F.sources.map(encodeURIComponent).join(',')})`);
+  if(F.call_outcomes.length) filters.push(`last_call_outcome=in.(${F.call_outcomes.map(encodeURIComponent).join(',')})`);
+  if(F.eng_levels.length)    filters.push(`english_proficiency=in.(${F.eng_levels.map(encodeURIComponent).join(',')})`);
   if(F.owners.length) {
     const ownerFilters = F.owners.map(o =>
       o==='Unassigned' ? 'owner=eq.' : `owner=eq.${encodeURIComponent(o)}`
@@ -519,6 +522,7 @@ function renderLeadsPage(title, assignMode=false) {
         oninput="F.q=this.value;debounce(()=>loadLeads(0))">
       ${msHTML('roles')}${msHTML('statuses')}${msHTML('cities')}
       ${msHTML('industries')}${msHTML('depts')}${msHTML('sources')}
+      ${msHTML('call_outcomes')}${msHTML('eng_levels')}
       ${showOwner?msHTML('owners'):''}
     </div>
     <div class="fbar-r">
@@ -628,6 +632,7 @@ async function reloadLeads() {
 
 function resetF(){
   F={q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],
+     call_outcomes:[],eng_levels:[],
      ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
   renderLeadsPage(_pgTitle,_pgAssign);
 }
@@ -637,15 +642,23 @@ function resetF(){
 // (options loaded from current result set for relevance)
 // ════════════════════════════════════════════════════
 const MS_LABELS={roles:'Standard Role',statuses:'Status',cities:'City',
-  industries:'Industry',depts:'Department',sources:'Source',owners:'Owner'};
+  industries:'Industry',depts:'Department',sources:'Source',owners:'Owner',
+  call_outcomes:'Call Outcome',eng_levels:'English'};
+const CALL_OUTCOMES = ['Not Called','Interested','Not Interested',
+  'Not Reachable','Callback Requested','Wrong Number'];
+const ENG_LEVELS = ['Poor','Average','Good'];
+
 const MS_STATIC={
-  statuses: STATUSES,
-  owners:   ['Unassigned'] // recruiters added after load
+  statuses:      STATUSES,
+  call_outcomes: CALL_OUTCOMES,
+  eng_levels:    ENG_LEVELS,
+  owners:        ['Unassigned']
 };
 
 function getArr(id){
   return{roles:F.roles,statuses:F.statuses,cities:F.cities,
-    industries:F.industries,depts:F.depts,sources:F.sources,owners:F.owners}[id]||[];
+    industries:F.industries,depts:F.depts,sources:F.sources,owners:F.owners,
+    call_outcomes:F.call_outcomes,eng_levels:F.eng_levels}[id]||[];
 }
 
 // For dropdowns that need dynamic options, we pre-load from DB once
@@ -841,11 +854,13 @@ async function doAssign(){
 
 function rebuildAsgDrop(){
   const sel=document.getElementById('asg-rec');if(!sel)return;
-  while(sel.options.length>3)sel.remove(3);
-  RECRUITERS.forEach(r=>{
-    const o=document.createElement('option');
-    o.value=r;o.text=r;sel.add(o,2);
-  });
+  // Clear everything and rebuild from scratch to avoid duplicates
+  sel.innerHTML=`
+    <option value="">— pick recruiter —</option>
+    ${RECRUITERS.map(r=>`<option value="${r}">${r}</option>`).join('')}
+    <option value="__rr__">Round-robin (auto)</option>
+    <option value="__none__">⊘ Unassign selected leads</option>
+  `;
 }
 
 // ════════════════════════════════════════════════════
@@ -1285,6 +1300,7 @@ function render(){
   selLeads=new Set();
   navRender();
   F={q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],
+     call_outcomes:[],eng_levels:[],
      ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
 
   if(page==='dashboard')    renderDashboard();
@@ -1325,4 +1341,3 @@ const _origLogin = doLogin;
 </script>
 </body>
 </html>
-
