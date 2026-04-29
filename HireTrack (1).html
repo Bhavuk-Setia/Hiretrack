@@ -214,7 +214,6 @@ textarea.fi-full{resize:vertical;min-height:64px}
 // ════════════════════════════════════════════════════
 const SB_URL = 'https://esgyriktdmlqnestbysl.supabase.co';       // e.g. https://xxxx.supabase.co
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZ3lyaWt0ZG1scW5lc3RieXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODAxODksImV4cCI6MjA5Mjk1NjE4OX0.BP8wrpjLhTNuUfmzWIiklaOVeV9Fzm97Xo2gW9vmrT8';  // long string from Settings → API
-
 // ════════════════════════════════════════════════════
 // SUPABASE API WRAPPER
 // Direct REST calls — no SDK needed
@@ -312,9 +311,9 @@ let _pgTitle    = '';
 let _pgAssign   = false;
 
 const STATUSES=['New','Contacted','Interested','Shortlisted',
-  'Submitted to Client','Not Interested','Not Reachable','On Hold'];
+  'Submitted to Client','Placed','Not Interested','On Hold'];
 const SC={New:'b-new',Contacted:'b-con',Interested:'b-int',Shortlisted:'b-sho',
-  'Not Interested':'b-no','Not Reachable':'b-no','On Hold':'b-new',
+  'Not Interested':'b-no','On Hold':'b-new',
   'Submitted to Client':'b-sho',Placed:'b-int'};
 const MGR_ONLY = ['full_name','phone_primary','email'];
 const REC_EDIT = ['current_city','current_company','standard_role','naukri_job_title',
@@ -656,8 +655,8 @@ function resetF(){
 const MS_LABELS={roles:'Standard Role',statuses:'Status',cities:'City',
   industries:'Industry',depts:'Department',sources:'Source',owners:'Owner',
   call_outcomes:'Call Outcome',eng_levels:'English'};
-const CALL_OUTCOMES = ['Not Called','Interested','Not Interested',
-  'Not Reachable','Callback Requested','Wrong Number'];
+const CALL_OUTCOMES = ['Not Called','Connected','Not Reachable',
+  'Didn't Respond','Callback Requested','Wrong Number'];
 const ENG_LEVELS = ['Poor','Average','Good'];
 
 const MS_STATIC={
@@ -1006,8 +1005,8 @@ async function renderPerformance(){
   const targetRecruiters = appRole==='recruiter' ? [SESSION.name] : RECRUITERS;
   const allStatuses = ['New','Contacted','Interested','Shortlisted',
     'Submitted to Client','Not Interested','Not Reachable','On Hold','Placed'];
-  const callOutcomes = ['Not Called','Interested','Not Interested',
-    'Not Reachable','Callback Requested','Wrong Number'];
+  const callOutcomes = ['Not Called','Connected','Not Reachable',
+    "Didn't Respond",'Callback Requested','Wrong Number'];
 
   const rows = await Promise.all(targetRecruiters.map(async r => {
     const [statusCounts, callCounts, total] = await Promise.all([
@@ -1045,7 +1044,7 @@ async function renderPerformance(){
           const pct=total>0?Math.round(n/total*100):0;
           const bar={New:'#4361ee',Contacted:'#3b82f6',Interested:'#22c55e',
             Shortlisted:'#f59e0b','Submitted to Client':'#8b5cf6',
-            'Not Interested':'#ef4444','Not Reachable':'#f87171','On Hold':'#94a3b8',Placed:'#10b981'}[s]||'#4361ee';
+            'Not Interested':'#ef4444','On Hold':'#94a3b8',Placed:'#10b981'}[s]||'#4361ee';
           return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
             <span style="font-size:11px;width:130px;color:#888">${s}</span>
             <div style="flex:1;height:5px;background:#f0f1f5;border-radius:3px;overflow:hidden">
@@ -1059,8 +1058,8 @@ async function renderPerformance(){
         ${callOutcomes.map((o,i)=>{
           const n=callCounts[i]||0;
           const pct=total>0?Math.round(n/total*100):0;
-          const bar={Interested:'#22c55e','Not Interested':'#ef4444',
-            'Not Reachable':'#f87171','Callback Requested':'#f59e0b',
+          const bar={Connected:'#22c55e','Not Reachable':'#ef4444',
+            "Didn't Respond":'#f87171','Callback Requested':'#f59e0b',
             'Wrong Number':'#94a3b8','Not Called':'#e2e8f0'}[o]||'#4361ee';
           return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
             <span style="font-size:11px;width:130px;color:#888">${o}</span>
@@ -1299,8 +1298,8 @@ async function renderDetail(){
         <div class="fr2">
           <div class="fr"><label class="fl">Call outcome</label>
             <select class="fi-full" id="fo-out">
-              ${['Not Called','Interested','Not Interested','Not Reachable',
-                 'Callback Requested','Wrong Number'].map(o=>`<option${(l.last_call_outcome||'')=== o?' selected':''}>${o}</option>`).join('')}
+              ${['Not Called','Connected','Not Reachable',
+                 "Didn't Respond",'Callback Requested','Wrong Number'].map(o=>`<option${(l.last_call_outcome||'')=== o?' selected':''}>${o}</option>`).join('')}
             </select></div>
           <div class="fr"><label class="fl">Status</label>
             <select class="fi-full" id="fo-st">
@@ -1428,3 +1427,4 @@ const _origLogin = doLogin;
 </script>
 </body>
 </html>
+
