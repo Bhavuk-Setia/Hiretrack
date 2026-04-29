@@ -214,6 +214,7 @@ textarea.fi-full{resize:vertical;min-height:64px}
 // ════════════════════════════════════════════════════
 const SB_URL = 'https://esgyriktdmlqnestbysl.supabase.co';       // e.g. https://xxxx.supabase.co
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZ3lyaWt0ZG1scW5lc3RieXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODAxODksImV4cCI6MjA5Mjk1NjE4OX0.BP8wrpjLhTNuUfmzWIiklaOVeV9Fzm97Xo2gW9vmrT8';  // long string from Settings → API
+
 // ════════════════════════════════════════════════════
 // SUPABASE API WRAPPER
 // Direct REST calls — no SDK needed
@@ -548,7 +549,8 @@ function renderLeadsPage(title, assignMode=false) {
           <input class="fi-xs" type="number" placeholder="max" value="${F.exp_b}"
             oninput="F.exp_b=this.value;debounce(()=>loadLeads(0))">`:``}
       </div>
-      <button class="btn" style="font-size:11px;margin-left:auto" onclick="resetF()">Clear all</button>
+      <span id="res-count" style="font-size:11px;color:#888;font-family:monospace;margin-left:auto;white-space:nowrap"></span>
+      <button class="btn" style="font-size:11px" onclick="resetF()">Clear all</button>
     </div>
   </div>
   ${assignMode?`<div style="padding:4px 0 8px;font-size:12px;color:#888">Tick leads, then use the bar above to assign, reassign, or unassign.</div>`:''}
@@ -575,6 +577,16 @@ function renderLeadsPage(title, assignMode=false) {
 function renderLeadsTable() {
   const tbody = document.getElementById('leads-tbody');
   if(!tbody) return;
+
+  // Update count display
+  const rc = document.getElementById('res-count');
+  if(rc) {
+    const start = _pgOffset + 1;
+    const end   = Math.min(_pgOffset + LEADS.length, _pgTotal);
+    rc.textContent = _pgTotal > 0
+      ? `Showing ${start}–${end} of ${_pgTotal.toLocaleString()} leads`
+      : 'No leads found';
+  }
 
   if(!LEADS.length) {
     tbody.innerHTML=`<tr><td colspan="14" style="padding:32px;text-align:center;color:#aaa;font-size:13px">No leads match the filters</td></tr>`;
@@ -894,45 +906,69 @@ function renderDashboard(){
 }
 
 async function loadDashboardDetails(){
-  // Load pipeline breakdown and recent unassigned
-  const [statusRes, unassignedRes] = await Promise.all([
-    SB.select('leads',{select:'status',limit:10000}),
+  const allStatuses = ['New','Contacted','Interested','Shortlisted',
+    'Submitted to Client','Not Interested','Not Reachable','On Hold'];
+
+  // Fetch all counts in parallel — each is a fast HEAD COUNT query
+  const [statusCounts, unassignedRes, recCounts] = await Promise.all([
+    // Count per status
+    Promise.all(allStatuses.map(async s => ({
+      status: s,
+      count:  await SB.count('leads', [`status=eq.${encodeURIComponent(s)}`])
+    }))),
+    // Recent unassigned leads
     SB.select('leads',{
       filters:['owner=eq.'],
       order:'create_date.desc',
       limit:6
-    })
+    }),
+    // Count per recruiter
+    Promise.all(RECRUITERS.map(async r => ({
+      name:  r,
+      total: await SB.count('leads',[`owner=eq.${encodeURIComponent(r)}`]),
+      called: await SB.count('leads',[`owner=eq.${encodeURIComponent(r)}`,`status=not.eq.New`]),
+      interested: await SB.count('leads',[`owner=eq.${encodeURIComponent(r)}`,`status=in.(Interested,Shortlisted)`]),
+    })))
   ]);
 
-  const statusCounts={};
-  (statusRes.data||[]).forEach(r=>{
-    statusCounts[r.status]=(statusCounts[r.status]||0)+1;
-  });
-  const total = COUNTS.total||1;
+  const scMap = {};
+  statusCounts.forEach(({status,count}) => scMap[status] = count);
+  const total = COUNTS.total || 1;
 
   const el=document.getElementById('dash-details');if(!el)return;
   el.innerHTML=`
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
   <div class="card"><div class="ch"><div class="ch-t">Pipeline by status</div></div><div style="padding:14px">
-    ${['New','Contacted','Interested','Shortlisted'].map(s=>{
-      const n=statusCounts[s]||0;
-      const pct=Math.round(n/total*100);
-      return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
-        <span style="font-size:12px;width:76px;color:#888">${s}</span>
+    ${['New','Contacted','Interested','Shortlisted','Submitted to Client','Not Interested','Not Reachable'].map(s=>{
+      const n=scMap[s]||0;
+      const pct=total>0?Math.round(n/total*100):0;
+      const colours={'Interested':'#22c55e','Shortlisted':'#f59e0b',
+        'Not Interested':'#ef4444','Not Reachable':'#ef4444',
+        'Submitted to Client':'#8b5cf6'};
+      const bar=colours[s]||'#4361ee';
+      return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="font-size:12px;width:140px;color:#888;white-space:nowrap">${s}</span>
         <div style="flex:1;height:6px;background:#f0f1f5;border-radius:3px;overflow:hidden">
-          <div style="height:100%;width:${pct}%;background:#4361ee;border-radius:3px"></div></div>
-        <span style="font-size:11px;font-family:monospace;width:28px;text-align:right">${n}</span>
+          <div style="height:100%;width:${pct}%;background:${bar};border-radius:3px"></div></div>
+        <span style="font-size:11px;font-family:monospace;width:40px;text-align:right">${n.toLocaleString()}</span>
       </div>`;}).join('')}
   </div></div>
-  <div class="card"><div class="ch"><div class="ch-t">Team</div></div><div style="padding:14px">
-    ${RECRUITERS.length?RECRUITERS.map(r=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0f1f5">
-        <span style="font-size:13px">${r}</span>
-        <button class="btn" style="font-size:11px;padding:3px 10px"
-          onclick="F={...F};F.owners=['${r}'];page='all';render()">View leads</button>
-      </div>`).join('')
-    :`<div style="color:#aaa;font-size:13px">No recruiters found</div>`}
-  </div></div></div>
+
+  <div class="card"><div class="ch"><div class="ch-t">Team performance</div></div>
+  <div style="overflow-x:auto"><table class="tbl"><thead><tr>
+    <th>Recruiter</th><th>Assigned</th><th>Called</th><th>Pipeline</th><th></th>
+  </tr></thead><tbody>
+  ${recCounts.length?recCounts.map(r=>`<tr>
+    <td style="font-weight:600">${r.name}</td>
+    <td style="font-family:monospace">${r.total.toLocaleString()}</td>
+    <td style="font-family:monospace">${r.called.toLocaleString()}</td>
+    <td style="font-family:monospace">${r.interested.toLocaleString()}</td>
+    <td><button class="btn" style="font-size:11px;padding:3px 10px"
+      onclick="F={...F};F.owners=['${r.name}'];page='all';render()">View</button></td>
+  </tr>`).join('')
+  :`<tr><td colspan="5" style="padding:16px;text-align:center;color:#aaa">No recruiters yet</td></tr>`}
+  </tbody></table></div></div></div>
+
   <div class="card"><div class="ch">
     <div class="ch-t">Recent unassigned leads</div>
     <button class="btn pri" onclick="nav('assign')">Assign now</button>
@@ -965,28 +1001,76 @@ async function renderPerformance(){
   document.getElementById('content').innerHTML=
     `<div class="loader-wrap"><div class="spinner"></div></div>`;
 
-  const rows = await Promise.all(RECRUITERS.map(async r => {
-    const counts = await Promise.all(
-      ['New','Contacted','Interested','Shortlisted','Placed'].map(s =>
-        SB.count('leads',[`owner=eq.${encodeURIComponent(r)}`,`status=eq.${s}`])
-      )
-    );
-    const total = await SB.count('leads',[`owner=eq.${encodeURIComponent(r)}`]);
-    return {r, total, counts};
+  // For recruiter: show only their own stats
+  // For manager: show all recruiters
+  const targetRecruiters = appRole==='recruiter' ? [SESSION.name] : RECRUITERS;
+  const allStatuses = ['New','Contacted','Interested','Shortlisted',
+    'Submitted to Client','Not Interested','Not Reachable','On Hold','Placed'];
+  const callOutcomes = ['Not Called','Interested','Not Interested',
+    'Not Reachable','Callback Requested','Wrong Number'];
+
+  const rows = await Promise.all(targetRecruiters.map(async r => {
+    const [statusCounts, callCounts, total] = await Promise.all([
+      Promise.all(allStatuses.map(s =>
+        SB.count('leads',[`owner=eq.${encodeURIComponent(r)}`,`status=eq.${encodeURIComponent(s)}`])
+      )),
+      Promise.all(callOutcomes.map(o =>
+        SB.count('leads',[`owner=eq.${encodeURIComponent(r)}`,`last_call_outcome=eq.${encodeURIComponent(o)}`])
+      )),
+      SB.count('leads',[`owner=eq.${encodeURIComponent(r)}`])
+    ]);
+    return { r, total, statusCounts, callCounts };
   }));
 
+  const statusLabel = s => {
+    const colours={New:'b-new',Contacted:'b-con',Interested:'b-int',
+      Shortlisted:'b-sho','Not Interested':'b-no','Not Reachable':'b-no',
+      'Submitted to Client':'b-sho',Placed:'b-int'};
+    return `<span class="badge ${colours[s]||'b-new'}">${s}</span>`;
+  };
+
   document.getElementById('content').innerHTML=`
-  <div class="card"><div class="ch"><div class="ch-t">Recruiter breakdown</div></div>
-  <div style="overflow-x:auto"><table class="tbl"><thead><tr>
-    <th>Recruiter</th><th>Total</th><th>New</th><th>Contacted</th>
-    <th>Interested</th><th>Shortlisted</th><th>Placed</th>
-  </tr></thead><tbody>
-  ${rows.map(({r,total,counts})=>`<tr>
-    <td style="font-weight:600">${r}</td>
-    <td style="font-family:monospace">${total}</td>
-    ${counts.map(n=>`<td style="font-family:monospace">${n}</td>`).join('')}
-  </tr>`).join('')}
-  </tbody></table></div></div>`;
+  ${rows.map(({r,total,statusCounts,callCounts})=>`
+  <div class="card" style="margin-bottom:14px">
+    <div class="ch">
+      <div class="ch-t">${r}</div>
+      <span style="font-size:12px;color:#888">${total.toLocaleString()} leads assigned</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+
+      <div style="padding:14px;border-right:1px solid #f0f1f5">
+        <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">By status</div>
+        ${allStatuses.map((s,i)=>{
+          const n=statusCounts[i]||0;if(!n&&s==='Placed')return'';
+          const pct=total>0?Math.round(n/total*100):0;
+          const bar={New:'#4361ee',Contacted:'#3b82f6',Interested:'#22c55e',
+            Shortlisted:'#f59e0b','Submitted to Client':'#8b5cf6',
+            'Not Interested':'#ef4444','Not Reachable':'#f87171','On Hold':'#94a3b8',Placed:'#10b981'}[s]||'#4361ee';
+          return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+            <span style="font-size:11px;width:130px;color:#888">${s}</span>
+            <div style="flex:1;height:5px;background:#f0f1f5;border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:${bar};border-radius:3px"></div></div>
+            <span style="font-size:11px;font-family:monospace;width:36px;text-align:right">${n.toLocaleString()}</span>
+          </div>`;}).join('')}
+      </div>
+
+      <div style="padding:14px">
+        <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">By call outcome</div>
+        ${callOutcomes.map((o,i)=>{
+          const n=callCounts[i]||0;
+          const pct=total>0?Math.round(n/total*100):0;
+          const bar={Interested:'#22c55e','Not Interested':'#ef4444',
+            'Not Reachable':'#f87171','Callback Requested':'#f59e0b',
+            'Wrong Number':'#94a3b8','Not Called':'#e2e8f0'}[o]||'#4361ee';
+          return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+            <span style="font-size:11px;width:130px;color:#888">${o}</span>
+            <div style="flex:1;height:5px;background:#f0f1f5;border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:${bar};border-radius:3px"></div></div>
+            <span style="font-size:11px;font-family:monospace;width:36px;text-align:right">${n.toLocaleString()}</span>
+          </div>`;}).join('')}
+      </div>
+    </div>
+  </div>`).join('')}`;
 }
 
 // ════════════════════════════════════════════════════
@@ -1262,8 +1346,11 @@ function navRender(){
     ]},
   ]:[
     {sec:'my work',items:[
-      {id:'my-leads',  lbl:'My leads',         ico:'≡', badge:(COUNTS.myLeads||0).toLocaleString(), bc:'nb-g'},
-      {id:'followups', lbl:'Follow-ups today',  ico:'◷'},
+      {id:'my-leads',   lbl:'My leads',         ico:'≡', badge:(COUNTS.myLeads||0).toLocaleString(), bc:'nb-g'},
+      {id:'followups',  lbl:'Follow-ups today',  ico:'◷'},
+    ]},
+    {sec:'reports',items:[
+      {id:'performance',lbl:'My performance',   ico:'↗'},
     ]},
   ];
   pages.forEach(sec=>{
