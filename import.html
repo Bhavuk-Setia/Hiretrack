@@ -191,7 +191,7 @@ input[type=file]{display:none}
         </div>
         <input type="file" id="file-input" accept=".xlsx,.xls">
         <div style="margin-top:14px;display:flex;align-items:center;gap:10px" id="step1-btn-row">
-          <button class="btn pri" id="process-btn" onclick="processFile()" disabled
+          <button class="btn pri" id="process-btn" onclick="processFile()"
             style="opacity:0.4;cursor:not-allowed">
             ⚙ Clean &amp; analyse file
           </button>
@@ -485,16 +485,14 @@ function loadFile(file) {
   document.getElementById('dz-title').textContent = 'File ready';
   document.getElementById('dz-sub').textContent = 'Click the button below to clean and analyse';
 
-  // Enable the button — use all methods to be sure
+  // Enable the button visually — no disabled attribute, just style
   const btn = document.getElementById('process-btn');
-  btn.removeAttribute('disabled');
-  btn.disabled = false;
-  btn.style.cssText = 'opacity:1 !important; cursor:pointer !important; background:#4361ee; color:#fff; border-color:#4361ee;';
+  btn.style.opacity = '1';
+  btn.style.cursor  = 'pointer';
+  btn.style.background = '#4361ee';
 
   // Update hint
-  document.getElementById('step1-hint').textContent = file.name + ' — click button to continue';
-
-  console.log('loadFile called:', file.name, '| button disabled:', btn.disabled);
+  document.getElementById('step1-hint').textContent = '✓ ' + file.name + ' — click button to continue';
 }
 
 // ════════════════════════════════════════════════════
@@ -602,8 +600,13 @@ function isEmpty(v) {
 let _results = null; // { newLeads, updates, dupsNoChange, quarantine }
 
 async function processFile() {
+  if(!_rawFile) {
+    toast('Please upload a Naukri Excel file first', true);
+    return;
+  }
   const btn = document.getElementById('process-btn');
-  btn.disabled = true; btn.textContent = '⚙ Processing…';
+  btn.style.opacity='0.5'; btn.style.cursor='not-allowed';
+  btn.textContent = '⚙ Processing…';
   document.getElementById('step1-hint').textContent = 'Reading Excel file…';
 
   try {
@@ -990,9 +993,9 @@ function resetTool() {
   document.getElementById('dz-title').textContent='Drop your Naukri Excel here';
   document.getElementById('dz-sub').textContent='or click to browse · .xlsx or .xls files only';
   const btn = document.getElementById('process-btn');
-  btn.disabled=true;
   btn.style.opacity='0.4';
   btn.style.cursor='not-allowed';
+  btn.style.background='';
   btn.textContent='⚙ Clean & analyse file';
   document.getElementById('step1-hint').textContent='Upload a file to continue';
   document.getElementById('file-input').value='';
