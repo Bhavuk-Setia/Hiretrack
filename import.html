@@ -449,23 +449,27 @@ function fileSelected(input) {
   if(input && input.files && input.files[0]) loadFile(input.files[0]);
 }
 
-// Wire up file input and drop zone after DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-  const fileInput = document.getElementById('file-input');
-  const dropZone  = document.getElementById('drop-zone');
-
-  // Click anywhere on drop zone opens file browser
-  dropZone.addEventListener('click', function(e) {
-    fileInput.click();
-  });
-
-  // File selected via browser dialog
-  fileInput.addEventListener('change', function() {
-    if(this.files && this.files[0]) {
-      loadFile(this.files[0]);
+// Wire up immediately — script runs after DOM elements exist
+(function() {
+  function wireUp() {
+    const fileInput = document.getElementById('file-input');
+    const dropZone  = document.getElementById('drop-zone');
+    if(!fileInput || !dropZone) {
+      setTimeout(wireUp, 50); // retry if DOM not ready yet
+      return;
     }
-  });
-});
+    dropZone.addEventListener('click', function() {
+      fileInput.value = ''; // reset so same file can be re-selected
+      fileInput.click();
+    });
+    fileInput.addEventListener('change', function() {
+      if(this.files && this.files[0]) {
+        loadFile(this.files[0]);
+      }
+    });
+  }
+  wireUp();
+})();
 
 function loadFile(file) {
   if(!file.name.match(/\.(xlsx|xls)$/i)) {
@@ -473,19 +477,24 @@ function loadFile(file) {
     return;
   }
   _rawFile = file;
+
+  // Update drop zone appearance
   const dz = document.getElementById('drop-zone');
   dz.classList.add('has-file');
   document.getElementById('dz-filename').textContent = '✓ ' + file.name;
-  document.getElementById('dz-title').textContent = 'File loaded — ready to process';
-  document.getElementById('dz-sub').textContent = 'Click "Clean & analyse file" below to continue';
+  document.getElementById('dz-title').textContent = 'File ready';
+  document.getElementById('dz-sub').textContent = 'Click the button below to clean and analyse';
 
-  // Enable the button
+  // Enable the button — use all methods to be sure
   const btn = document.getElementById('process-btn');
+  btn.removeAttribute('disabled');
   btn.disabled = false;
-  btn.style.opacity = '1';
-  btn.style.cursor  = 'pointer';
+  btn.style.cssText = 'opacity:1 !important; cursor:pointer !important; background:#4361ee; color:#fff; border-color:#4361ee;';
 
-  document.getElementById('step1-hint').textContent = file.name + ' — ready';
+  // Update hint
+  document.getElementById('step1-hint').textContent = file.name + ' — click button to continue';
+
+  console.log('loadFile called:', file.name, '| button disabled:', btn.disabled);
 }
 
 // ════════════════════════════════════════════════════
