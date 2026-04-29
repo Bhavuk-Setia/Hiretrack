@@ -258,6 +258,29 @@ input[type=file]{display:none}
       </div>
     </div>
 
+    <!-- Email matches -->
+    <div class="card" id="email-card" style="display:none">
+      <div class="ch">
+        <div class="ch-t">⚠ Same email, different phone — review manually</div>
+        <div class="ch-sub" id="email-count-lbl"></div>
+      </div>
+      <div class="cb" style="padding:0">
+        <div style="padding:10px 16px;background:#fffbeb;border-bottom:1px solid #fde68a;font-size:12px;color:#92400e">
+          These records have the same email as an existing lead but a different phone number.
+          They are <strong>not imported</strong> — review each one manually to decide if it's the same person with a new number.
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr>
+              <th>New name</th><th>New phone</th><th>Email</th>
+              <th>Existing name</th><th>Existing phone</th><th>Lead ID</th><th>Status</th>
+            </tr></thead>
+            <tbody id="email-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Quarantine -->
     <div class="card" id="quar-card" style="display:none">
       <div class="ch">
@@ -660,6 +683,7 @@ async function processFile() {
 
     // 3. Fetch all phone numbers from Supabase for dedup
     const existingPhones = {};
+    const existingEmails = {};
     let offset = 0; const PAGE = 5000;
     while(true) {
       const res = await SB.select('leads', {
@@ -669,7 +693,10 @@ async function processFile() {
         limit: PAGE, offset
       });
       if(!res.ok || !res.data.length) break;
-      res.data.forEach(r => { existingPhones[r.phone_primary] = r; });
+      res.data.forEach(r => {
+        existingPhones[r.phone_primary] = r;
+        if(r.email) existingEmails[r.email.trim().toLowerCase()] = r;
+      });
       offset += PAGE;
       if(res.data.length < PAGE) break;
       document.getElementById('step1-hint').textContent =
@@ -697,18 +724,36 @@ async function processFile() {
 
     // 5. Classify each cleaned record
     const newLeads=[]; const updates=[]; const dupsNoChange=[];
+    const emailMatches=[];  // same email, different phone — needs manual review
     let idCounter = maxId + 1;
 
     for(const lead of cleaned) {
       const existing = existingPhones[lead.phone_primary];
       if(!existing) {
-        // Brand new
-        newLeads.push({
-          ...lead,
-          lead_id: `L-${String(idCounter).padStart(5,'0')}`,
-          create_date: new Date().toISOString().slice(0,10),
-        });
-        idCounter++;
+        // Check email match (same person, different phone?)
+        const emailKey = (lead.email||'').trim().toLowerCase();
+        const emailMatch = emailKey ? existingEmails[emailKey] : null;
+
+        if(emailMatch) {
+          // Same email but different phone — flag for manual review
+          emailMatches.push({
+            new_phone:    lead.phone_primary,
+            new_name:     lead.full_name,
+            new_email:    lead.email,
+            existing_phone: emailMatch.phone_primary,
+            existing_name:  emailMatch.full_name,
+            existing_id:    emailMatch.lead_id,
+            existing_status: emailMatch.status,
+          });
+        } else {
+          // Brand new lead
+          newLeads.push({
+            ...lead,
+            lead_id: `L-${String(idCounter).padStart(5,'0')}`,
+            create_date: new Date().toISOString().slice(0,10),
+          });
+          idCounter++;
+        }
       } else {
         // Duplicate — check for field changes
         const changes = [];
@@ -789,7 +834,7 @@ async function processFile() {
       }
     }
 
-    _results = { newLeads, updates, dupsNoChange, quarantine };
+    _results = { newLeads, updates, dupsNoChange, quarantine, emailMatches };
     showPreview();
 
   } catch(err) {
@@ -803,7 +848,7 @@ async function processFile() {
 // PREVIEW
 // ════════════════════════════════════════════════════
 function showPreview() {
-  const {newLeads, updates, dupsNoChange, quarantine} = _results;
+  const {newLeads, updates, dupsNoChange, quarantine, emailMatches} = _results;
   setStep(2);
 
   // Stats
@@ -811,7 +856,7 @@ function showPreview() {
     <div class="stat stat-n"><div class="stat-val sv-green">${newLeads.length}</div><div class="stat-lbl">New leads</div></div>
     <div class="stat stat-u"><div class="stat-val sv-amber">${updates.length}</div><div class="stat-lbl">To update</div></div>
     <div class="stat stat-d"><div class="stat-val sv-red">${dupsNoChange.length}</div><div class="stat-lbl">No change</div></div>
-    <div class="stat stat-e"><div class="stat-val sv-orange">${quarantine.length}</div><div class="stat-lbl">Invalid phone</div></div>
+    <div class="stat stat-e"><div class="stat-val sv-orange">${emailMatches.length}</div><div class="stat-lbl">⚠ Email match</div></div>
   `;
 
   // New leads table
@@ -854,6 +899,22 @@ function showPreview() {
       </tr>`).join('');
   }
 
+  // Email matches
+  if(emailMatches.length) {
+    document.getElementById('email-card').style.display='block';
+    document.getElementById('email-count-lbl').textContent = `${emailMatches.length} records`;
+    document.getElementById('email-tbody').innerHTML = emailMatches.map(m=>`
+      <tr>
+        <td style="font-weight:600">${m.new_name||'—'}</td>
+        <td style="font-family:monospace">${m.new_phone}</td>
+        <td style="font-size:11px">${m.new_email||'—'}</td>
+        <td>${m.existing_name||'—'}</td>
+        <td style="font-family:monospace">${m.existing_phone}</td>
+        <td style="font-family:monospace;font-size:11px;color:#4361ee">${m.existing_id}</td>
+        <td><span class="badge b-upd">${m.existing_status||'—'}</span></td>
+      </tr>`).join('');
+  }
+
   // Quarantine
   if(quarantine.length) {
     document.getElementById('quar-card').style.display='block';
@@ -868,11 +929,14 @@ function showPreview() {
 
   // Hint
   const total = newLeads.length + updates.length;
+  const reviewCount = emailMatches.length;
   document.getElementById('step2-hint').textContent =
     total > 0
       ? `${total} record${total>1?'s':''} will be written to Supabase`
-      : 'Nothing to import — all leads are already up to date';
-  if(total === 0) document.getElementById('import-btn').disabled = true;
+        + (reviewCount ? ` · ${reviewCount} need manual review` : '')
+      : 'Nothing to import — all leads are already up to date'
+        + (reviewCount ? ` · ${reviewCount} email matches need review` : '');
+  if(total === 0) document.getElementById('import-btn').style.opacity = '0.5';
 }
 
 // ════════════════════════════════════════════════════
@@ -988,21 +1052,40 @@ function setStep(n) {
 
 function resetTool() {
   _rawFile=null; _results=null;
-  document.getElementById('drop-zone').className='drop-zone';
+
+  // Reset drop zone
+  const dz = document.getElementById('drop-zone');
+  dz.className='drop-zone';
   document.getElementById('dz-filename').textContent='';
   document.getElementById('dz-title').textContent='Drop your Naukri Excel here';
   document.getElementById('dz-sub').textContent='or click to browse · .xlsx or .xls files only';
+
+  // Reset button
   const btn = document.getElementById('process-btn');
   btn.style.opacity='0.4';
   btn.style.cursor='not-allowed';
   btn.style.background='';
   btn.textContent='⚙ Clean & analyse file';
+
+  // Reset hints
   document.getElementById('step1-hint').textContent='Upload a file to continue';
   document.getElementById('file-input').value='';
-  ['upd-card','dup-card','quar-card'].forEach(id=>{
-    document.getElementById(id).style.display='none';
+
+  // Hide all result cards
+  ['upd-card','dup-card','quar-card','email-card'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display='none';
   });
-  document.getElementById('import-btn').disabled=false;
+
+  // Reset import button
+  const importBtn = document.getElementById('import-btn');
+  if(importBtn){ importBtn.style.opacity='1'; importBtn.style.cursor='pointer'; }
+
+  // Reset step hint
+  const hint = document.getElementById('step2-hint');
+  if(hint) hint.textContent='';
+
+  // Go back to step 1
   setStep(1);
 }
 
