@@ -325,7 +325,7 @@ const REC_EDIT = ['current_city','current_company','standard_role','naukri_job_t
 let F = {
   q:'', roles:[], statuses:[], cities:[], industries:[],
   depts:[], sources:[], owners:[],
-  call_outcomes:[], eng_levels:[],
+  call_outcomes:[], eng_levels:[], naukri_titles:[],
   ctc_op:'between', ctc_a:'', ctc_b:'',
   exp_op:'between', exp_a:'', exp_b:''
 };
@@ -426,23 +426,50 @@ function buildFilters() {
 
   // UI filters
   if(F.q) {
-    // Full text search across name, phone, city
-    filters.push(`or=(full_name.ilike.*${encodeURIComponent(F.q)}*,phone_primary.ilike.*${encodeURIComponent(F.q)}*,current_city.ilike.*${encodeURIComponent(F.q)}*)`);
+    const qEnc = encodeURIComponent(F.q);
+    // Search across name, phone, city, email and naukri title
+    filters.push(`or=(full_name.ilike.*${qEnc}*,phone_primary.ilike.*${qEnc}*,current_city.ilike.*${qEnc}*,email.ilike.*${qEnc}*,naukri_job_title.ilike.*${qEnc}*)`);
   }
-  if(F.roles.length)     filters.push(`standard_role=in.(${F.roles.map(encodeURIComponent).join(',')})`);
-  if(F.statuses.length)  filters.push(`status=in.(${F.statuses.map(encodeURIComponent).join(',')})`);
-  if(F.cities.length)    filters.push(`current_city=in.(${F.cities.map(encodeURIComponent).join(',')})`);
-  if(F.industries.length)filters.push(`industry=in.(${F.industries.map(encodeURIComponent).join(',')})`);
-  if(F.depts.length)     filters.push(`department=in.(${F.depts.map(encodeURIComponent).join(',')})`);
-  if(F.sources.length)       filters.push(`source_channel=in.(${F.sources.map(encodeURIComponent).join(',')})`);
-  if(F.call_outcomes.length) filters.push(`last_call_outcome=in.(${F.call_outcomes.map(encodeURIComponent).join(',')})`);
-  if(F.eng_levels.length)    filters.push(`english_proficiency=in.(${F.eng_levels.map(encodeURIComponent).join(',')})`);
+  // Helper: builds a safe filter for values that may contain commas or special chars
+  // Uses OR of individual eq filters instead of IN clause
+  function makeFilter(field, values) {
+    if(!values.length) return null;
+    if(values.length === 1) {
+      return `${field}=eq.${encodeURIComponent(values[0])}`;
+    }
+    // OR syntax: or=(field.eq."val1",field.eq."val2")
+    const parts = values.map(v => `${field}.eq."${v.replace(/"/g, '\"')}"`);
+    return `or=(${parts.join(',')})`;
+  }
+
+  const roleF   = makeFilter('standard_role',        F.roles);
+  const statusF = makeFilter('status',               F.statuses);
+  const cityF   = makeFilter('current_city',         F.cities);
+  const indF    = makeFilter('industry',             F.industries);
+  const deptF   = makeFilter('department',           F.depts);
+  const srcF    = makeFilter('source_channel',       F.sources);
+  const coF      = makeFilter('last_call_outcome',    F.call_outcomes);
+  const engF     = makeFilter('english_proficiency',  F.eng_levels);
+  const naukriF  = makeFilter('naukri_job_title',     F.naukri_titles);
+
+  if(roleF)    filters.push(roleF);
+  if(statusF)  filters.push(statusF);
+  if(cityF)    filters.push(cityF);
+  if(indF)     filters.push(indF);
+  if(deptF)    filters.push(deptF);
+  if(srcF)     filters.push(srcF);
+  if(coF)      filters.push(coF);
+  if(engF)     filters.push(engF);
+  if(naukriF)  filters.push(naukriF);
   if(F.owners.length) {
-    const ownerFilters = F.owners.map(o =>
-      o==='Unassigned' ? 'owner=eq.' : `owner=eq.${encodeURIComponent(o)}`
+    const ownerParts = F.owners.map(o =>
+      o==='Unassigned' ? 'owner.eq.' : `owner.eq."${o.replace(/"/g,'\"')}"`
     );
-    if(ownerFilters.length===1) filters.push(ownerFilters[0]);
-    else filters.push(`or=(${ownerFilters.join(',')})`);
+    if(ownerParts.length===1) {
+      filters.push(F.owners[0]==='Unassigned' ? 'owner=eq.' : `owner=eq.${encodeURIComponent(F.owners[0])}`);
+    } else {
+      filters.push(`or=(${ownerParts.join(',')})`);
+    }
   }
 
   // Numeric filters
@@ -521,7 +548,7 @@ function renderLeadsPage(title, assignMode=false) {
       <input class="fi fi-search" id="main-search" placeholder="Search name, phone, city…"
         value="${F.q}" autocomplete="off"
         oninput="F.q=this.value;debounce(()=>loadLeads(0))">
-      ${msHTML('roles')}${msHTML('statuses')}${msHTML('cities')}
+      ${msHTML('roles')}${msHTML('naukri_titles')}${msHTML('statuses')}${msHTML('cities')}
       ${msHTML('industries')}${msHTML('depts')}${msHTML('sources')}
       ${msHTML('call_outcomes')}${msHTML('eng_levels')}
       ${showOwner?msHTML('owners'):''}
@@ -644,7 +671,7 @@ async function reloadLeads() {
 
 function resetF(){
   F={q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],
-     call_outcomes:[],eng_levels:[],
+     call_outcomes:[],eng_levels:[],naukri_titles:[],
      ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
   renderLeadsPage(_pgTitle,_pgAssign);
 }
@@ -655,7 +682,7 @@ function resetF(){
 // ════════════════════════════════════════════════════
 const MS_LABELS={roles:'Standard Role',statuses:'Status',cities:'City',
   industries:'Industry',depts:'Department',sources:'Source',owners:'Owner',
-  call_outcomes:'Call Outcome',eng_levels:'English'};
+  call_outcomes:'Call Outcome',eng_levels:'English',naukri_titles:'Naukri Title'};
 const CALL_OUTCOMES = ['Not Called','Connected','Not Reachable',
   "Didn't Respond",'Callback Requested','Wrong Number'];
 const ENG_LEVELS = ['Poor','Average','Good'];
@@ -670,29 +697,30 @@ const MS_STATIC={
 function getArr(id){
   return{roles:F.roles,statuses:F.statuses,cities:F.cities,
     industries:F.industries,depts:F.depts,sources:F.sources,owners:F.owners,
-    call_outcomes:F.call_outcomes,eng_levels:F.eng_levels}[id]||[];
+    call_outcomes:F.call_outcomes,eng_levels:F.eng_levels,
+    naukri_titles:F.naukri_titles}[id]||[];
 }
 
 // For dropdowns that need dynamic options, we pre-load from DB once
-let _msOpts = {roles:[],cities:[],industries:[],depts:[],sources:[]};
+let _msOpts = {roles:[],cities:[],industries:[],depts:[],sources:[],naukri_titles:[]};
 
 async function loadFilterOptions() {
-  // Fetch enough rows to get all distinct values
-  // Using high limit to capture all unique values across 50K records
-  const [roles, cities, inds, depts, sources] = await Promise.all([
-    SB.select('leads', { select:'standard_role', limit:50000 }),
-    SB.select('leads', { select:'current_city',  limit:50000 }),
-    SB.select('leads', { select:'industry',      limit:50000 }),
-    SB.select('leads', { select:'department',    limit:50000 }),
-    SB.select('leads', { select:'source_channel',limit:50000 }),
+  const [roles, cities, inds, depts, sources, naukri] = await Promise.all([
+    SB.select('leads', { select:'standard_role',    limit:50000 }),
+    SB.select('leads', { select:'current_city',     limit:50000 }),
+    SB.select('leads', { select:'industry',         limit:50000 }),
+    SB.select('leads', { select:'department',       limit:50000 }),
+    SB.select('leads', { select:'source_channel',   limit:50000 }),
+    SB.select('leads', { select:'naukri_job_title', limit:50000 }),
   ]);
   const uniq = (res, key) =>
     [...new Set((res.data||[]).map(r => r[key]).filter(Boolean))].sort();
-  _msOpts.roles      = uniq(roles,   'standard_role');
-  _msOpts.cities     = uniq(cities,  'current_city');
-  _msOpts.industries = uniq(inds,    'industry');
-  _msOpts.depts      = uniq(depts,   'department');
-  _msOpts.sources    = uniq(sources, 'source_channel');
+  _msOpts.roles         = uniq(roles,   'standard_role');
+  _msOpts.cities        = uniq(cities,  'current_city');
+  _msOpts.industries    = uniq(inds,    'industry');
+  _msOpts.depts         = uniq(depts,   'department');
+  _msOpts.sources       = uniq(sources, 'source_channel');
+  _msOpts.naukri_titles = uniq(naukri,  'naukri_job_title');
 }
 
 function msHTML(id) {
@@ -1016,11 +1044,13 @@ async function renderPerformance(){
       )),
       Promise.all(callOutcomes.map(o => {
         if(o === 'Not Called') {
-          // Count leads where last_call_outcome is empty string OR null
-          // These are leads that have never been called
+          // Count leads where last_call_outcome is:
+          // - NULL (never set)
+          // - empty string (imported, never called)
+          // - literal 'Not Called' (explicitly set)
           return SB.count('leads',[
             `owner=eq.${encodeURIComponent(r)}`,
-            `or=(last_call_outcome.eq.,last_call_outcome.is.null)`
+            `or=(last_call_outcome.eq.,last_call_outcome.is.null,last_call_outcome.eq.Not Called)`
           ]);
         }
         return SB.count('leads',[
@@ -1417,7 +1447,7 @@ function render(){
   selLeads=new Set();
   navRender();
   F={q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],
-     call_outcomes:[],eng_levels:[],
+     call_outcomes:[],eng_levels:[],naukri_titles:[],
      ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
 
   if(page==='dashboard')    renderDashboard();
