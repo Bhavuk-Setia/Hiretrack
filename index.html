@@ -214,6 +214,7 @@ textarea.fi-full{resize:vertical;min-height:64px}
 // ════════════════════════════════════════════════════
 const SB_URL = 'https://esgyriktdmlqnestbysl.supabase.co';       // e.g. https://xxxx.supabase.co
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZ3lyaWt0ZG1scW5lc3RieXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODAxODksImV4cCI6MjA5Mjk1NjE4OX0.BP8wrpjLhTNuUfmzWIiklaOVeV9Fzm97Xo2gW9vmrT8';  // long string from Settings → API
+
 // ════════════════════════════════════════════════════
 // SUPABASE API WRAPPER
 // Direct REST calls — no SDK needed
@@ -268,7 +269,10 @@ const SB = {
       },
       body: JSON.stringify(Array.isArray(rows)?rows:[rows])
     });
-    return { ok: r.ok, status: r.status };
+    let body = null;
+    try { body = await r.json(); } catch(e) {}
+    if(!r.ok) console.error('SB.insert error:', table, r.status, body);
+    return { ok: r.ok, status: r.status, body };
   },
 
   // ── UPDATE rows matching filters ─────────────────────────────────
@@ -1181,13 +1185,16 @@ async function saveCall(lid){
   const newStatus     = document.getElementById('fo-st').value;
   const englishProf   = document.getElementById('fo-eng').value;
   const notes         = document.getElementById('fo-notes').value;
-  const followupDate  = document.getElementById('fo-date').value||null;
+  const rawDate = document.getElementById('fo-date').value;
+  const followupDate = rawDate && rawDate.trim() ? rawDate.trim() : null;
   const shortlisted   = document.getElementById('fo-client').value;
   const today         = new Date().toISOString().slice(0,10);
 
   // 1. Insert into call_log
+  // Try with status_after_call first (requires SQL migration to have been run)
+  // Falls back gracefully if column doesn't exist yet
   const logId = 'LOG-'+Date.now();
-  await SB.insert('call_log',{
+  let logRes = await SB.insert('call_log',{
     log_id:             logId,
     lead_id:            lid,
     recruiter_name:     SESSION.name,
@@ -1198,6 +1205,20 @@ async function saveCall(lid){
     notes:              notes,
     followup_date:      followupDate
   });
+
+  // If insert failed (e.g. status_after_call column not yet added), retry without it
+  if(!logRes.ok) {
+    logRes = await SB.insert('call_log',{
+      log_id:             logId+'_r',
+      lead_id:            lid,
+      recruiter_name:     SESSION.name,
+      call_date:          today,
+      call_outcome:       callOutcome,
+      english_proficiency:englishProf,
+      notes:              notes,
+      followup_date:      followupDate
+    });
+  }
 
   // 2. Update lead — status, shortlisted_for, followup_date
   //    AND store last call outcome + date directly on lead
@@ -1220,6 +1241,14 @@ async function saveCall(lid){
   l.last_call_date     = today;
   l.last_call_notes    = notes;
   l.english_proficiency= englishProf;
+
+  // Check if log insert succeeded
+  if(!logRes.ok) {
+    console.error('Call log insert failed:', logRes.status, logRes.body);
+    toast('Error saving call log (status: '+logRes.status+')', true);
+    if(btn){btn.disabled=false;btn.textContent='Save call log';}
+    return;
+  }
 
   toast('Call logged ✓');
   if(btn){btn.disabled=false;btn.textContent='Save call log';}
