@@ -432,19 +432,24 @@ function buildFilters() {
     // Search across name, phone, city, email and naukri title
     filters.push(`or=(full_name.ilike.*${qEnc}*,phone_primary.ilike.*${qEnc}*,current_city.ilike.*${qEnc}*,email.ilike.*${qEnc}*,naukri_job_title.ilike.*${qEnc}*)`);
   }
-  // Helper: builds a safe filter for values that may contain commas, &, spaces etc.
+  // Helper: builds a safe filter for values with special chars (commas, &, /, spaces)
   function makeFilter(field, values) {
     if(!values.length) return null;
     if(values.length === 1) {
-      // Single value — simple eq with encoded value
       return `${field}=eq.${encodeURIComponent(values[0])}`;
     }
-    // Multiple values — use OR with encoded values
-    // Format: or=(field.eq.val1,field.eq.val2)
-    // Each value must be percent-encoded so & and , don't break the URL
-    // BUT the comma between parts must stay as literal comma (Supabase separator)
-    const parts = values.map(v => `${field}.eq.${encodeURIComponent(v)}`);
-    return `or=(${parts.join(',')})`;
+    // For multiple values with possible commas/special chars:
+    // Use PostgREST OR with double-quoted values to protect commas inside values
+    // Then encode the entire or=(...) VALUE (everything after "or=") as one unit
+    // This ensures the outer comma separators survive but inner commas are protected
+    const parts = values.map(v => {
+      // Escape any double quotes inside the value
+      const escaped = v.replace(/"/g, '\\"');
+      return `${field}.eq."${escaped}"`;
+    });
+    // Encode the entire parenthetical expression as a single URL param value
+    const inner = parts.join(',');
+    return `or=${encodeURIComponent('(' + inner + ')')}`;
   }
 
   const roleF   = makeFilter('standard_role',        F.roles);
