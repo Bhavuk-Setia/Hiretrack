@@ -214,7 +214,6 @@ textarea.fi-full{resize:vertical;min-height:64px}
 // ════════════════════════════════════════════════════
 const SB_URL = 'https://esgyriktdmlqnestbysl.supabase.co';       // e.g. https://xxxx.supabase.co
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZ3lyaWt0ZG1scW5lc3RieXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODAxODksImV4cCI6MjA5Mjk1NjE4OX0.BP8wrpjLhTNuUfmzWIiklaOVeV9Fzm97Xo2gW9vmrT8';  // long string from Settings → API
-
 // ════════════════════════════════════════════════════
 // SUPABASE API WRAPPER
 // Direct REST calls — no SDK needed
@@ -1194,6 +1193,7 @@ async function saveCall(lid){
     recruiter_name:     SESSION.name,
     call_date:          today,
     call_outcome:       callOutcome,
+    status_after_call:  newStatus,
     english_proficiency:englishProf,
     notes:              notes,
     followup_date:      followupDate
@@ -1258,7 +1258,7 @@ async function renderDetail(){
   // Fetch call logs
   const logRes = await SB.select('call_log',{
     filters:[`lead_id=eq.${activeLead}`],
-    order:'call_date.desc',
+    order:'call_date.desc,log_id.desc',
     limit:20
   });
   const logs = logRes.data||[];
@@ -1314,13 +1314,15 @@ async function renderDetail(){
         ${logs.length?logs.map(log=>`
           <div class="tl-item">
             <div class="tl-dot b"></div>
-            <div>
-              <div class="tl-body">
-                ${log.call_outcome||'Call logged'}
-                ${log.english_proficiency?' · English: '+log.english_proficiency:''}
-                ${log.notes?'<br>'+log.notes:''}
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
+                <span style="font-size:13px;font-weight:600;color:#1a1a2e">${log.call_outcome||'Call logged'}</span>
+                ${log.status_after_call
+                  ? `<span class="badge ${SC[log.status_after_call]||'b-new'}" style="font-size:10px;padding:1px 7px">${log.status_after_call}</span>`
+                  : ''}
               </div>
-              <div class="tl-time">${log.call_date} · ${log.recruiter_name||'—'}</div>
+              ${log.notes?`<div style="font-size:12px;color:#64748b;margin-bottom:2px">${log.notes}</div>`:''}
+              <div class="tl-time">${log.call_date} · ${log.recruiter_name||'—'}${log.followup_date?' · Follow-up: '+log.followup_date:''}</div>
             </div>
           </div>`).join('')
         :`<div class="tl-item"><div class="tl-dot g"></div><div>
