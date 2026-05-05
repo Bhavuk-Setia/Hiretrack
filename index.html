@@ -214,6 +214,7 @@ textarea.fi-full{resize:vertical;min-height:64px}
 // ════════════════════════════════════════════════════
 const SB_URL = 'https://esgyriktdmlqnestbysl.supabase.co';       // e.g. https://xxxx.supabase.co
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZ3lyaWt0ZG1scW5lc3RieXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODAxODksImV4cCI6MjA5Mjk1NjE4OX0.BP8wrpjLhTNuUfmzWIiklaOVeV9Fzm97Xo2gW9vmrT8';  // long string from Settings → API
+
 // ════════════════════════════════════════════════════
 // SUPABASE API WRAPPER
 // Direct REST calls — no SDK needed
@@ -295,15 +296,16 @@ const SB = {
 // ════════════════════════════════════════════════════
 // APP STATE
 // ════════════════════════════════════════════════════
-let SESSION    = null;
-let LEADS      = [];       // current page of leads
-let RECRUITERS = [];
-let COUNTS     = {};       // { total, unassigned, myLeads, pipeline }
-let appRole    = 'manager';
-let page       = 'dashboard';
-let prevPage   = 'dashboard';
-let selLeads   = new Set();
-let activeLead = null;
+let SESSION          = null;
+let LEADS            = [];
+let RECRUITERS       = [];
+let COUNTS           = {};
+let appRole          = 'manager';
+let page             = 'dashboard';
+let prevPage         = 'dashboard';
+let selLeads         = new Set();
+let activeLead       = null;
+let _activeRecruiter = null;  // recruiter being viewed in manager sidebar
 
 // Pagination state
 const PAGE_SIZE = 100;    // rows per page — instant load from Supabase
@@ -918,7 +920,10 @@ function rebuildAsgDrop(){
 // ════════════════════════════════════════════════════
 // NAVIGATION
 // ════════════════════════════════════════════════════
-function nav(target){prevPage=page;page=target;render();}
+function nav(target){
+  if(target!=='rec-view') _activeRecruiter=null;
+  prevPage=page;page=target;render();
+}
 function navD(lid){prevPage=page;activeLead=lid;page='detail';render();}
 function goBack(){page=prevPage||'dashboard';render();}
 
@@ -1416,35 +1421,65 @@ async function renderDetail(){
 // ════════════════════════════════════════════════════
 function navRender(){
   const nb=document.getElementById('sb-nav');nb.innerHTML='';
-  const pages=appRole==='manager'?[
-    {sec:'overview',items:[
+
+  if(appRole==='manager') {
+    // ── OVERVIEW section ─────────────────────────────────────────
+    const ovSec=document.createElement('div');ovSec.className='nsec';ovSec.textContent='overview';nb.appendChild(ovSec);
+    [
       {id:'dashboard', lbl:'Dashboard',    ico:'⊞'},
       {id:'all',       lbl:'All leads',    ico:'≡', badge:(COUNTS.total||0).toLocaleString(), bc:'nb-b'},
       {id:'assign',    lbl:'Assign leads', ico:'◎', badge:(COUNTS.unassigned||0).toLocaleString(), bc:'nb-r'},
-    ]},
-    {sec:'team',items:[
-      {id:'performance',lbl:'Performance',ico:'↗'},
-    ]},
-  ]:[
-    {sec:'my work',items:[
-      {id:'my-leads',   lbl:'My leads',         ico:'≡', badge:(COUNTS.myLeads||0).toLocaleString(), bc:'nb-g'},
-      {id:'followups',  lbl:'Follow-ups today',  ico:'◷'},
-    ]},
-    {sec:'reports',items:[
-      {id:'performance',lbl:'My performance',   ico:'↗'},
-    ]},
-  ];
-  pages.forEach(sec=>{
-    const sh=document.createElement('div');sh.className='nsec';sh.textContent=sec.sec;nb.appendChild(sh);
-    sec.items.forEach(it=>{
+      {id:'performance',lbl:'Performance', ico:'↗'},
+    ].forEach(it=>{
       const d=document.createElement('div');
-      d.className='ni'+(page===it.id?' on':'');
+      d.className='ni'+(page===it.id&&!_activeRecruiter?' on':'');
       d.innerHTML=`<span class="ni-ico">${it.ico}</span>${it.lbl}`
         +(it.badge!==undefined?`<span class="nbadge ${it.bc||''}">${it.badge}</span>`:'');
-      d.onclick=()=>nav(it.id);
+      d.onclick=()=>{_activeRecruiter=null;nav(it.id);};
       nb.appendChild(d);
     });
-  });
+
+    // ── TEAM section — one item per recruiter ────────────────────
+    if(RECRUITERS.length) {
+      const teamSec=document.createElement('div');teamSec.className='nsec';teamSec.textContent='team';nb.appendChild(teamSec);
+      RECRUITERS.forEach(r=>{
+        const isActive = _activeRecruiter===r;
+        const d=document.createElement('div');
+        d.className='ni'+(isActive?' on':'');
+        // Avatar initials
+        const initials = r.split(' ').map(w=>w[0]).slice(0,2).join('');
+        d.innerHTML=`
+          <span style="width:20px;height:20px;border-radius:50%;background:${isActive?'#4361ee':'rgba(255,255,255,.15)'};
+            display:inline-flex;align-items:center;justify-content:center;
+            font-size:9px;font-weight:700;color:#fff;flex-shrink:0">${initials}</span>
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r}</span>`;
+        d.onclick=()=>viewRecruiterDashboard(r);
+        d.title=r;
+        nb.appendChild(d);
+      });
+    }
+  } else {
+    // ── RECRUITER nav ─────────────────────────────────────────────
+    [
+      {sec:'my work', items:[
+        {id:'my-leads',   lbl:'My leads',        ico:'≡', badge:(COUNTS.myLeads||0).toLocaleString(), bc:'nb-g'},
+        {id:'followups',  lbl:'Follow-ups today', ico:'◷'},
+      ]},
+      {sec:'reports', items:[
+        {id:'performance',lbl:'My performance',  ico:'↗'},
+      ]},
+    ].forEach(sec=>{
+      const sh=document.createElement('div');sh.className='nsec';sh.textContent=sec.sec;nb.appendChild(sh);
+      sec.items.forEach(it=>{
+        const d=document.createElement('div');
+        d.className='ni'+(page===it.id?' on':'');
+        d.innerHTML=`<span class="ni-ico">${it.ico}</span>${it.lbl}`
+          +(it.badge!==undefined?`<span class="nbadge ${it.bc||''}">${it.badge}</span>`:'');
+        d.onclick=()=>nav(it.id);
+        nb.appendChild(d);
+      });
+    });
+  }
 }
 
 function setRole(r){
@@ -1462,13 +1497,12 @@ function setRole(r){
 // ════════════════════════════════════════════════════
 // MAIN RENDER
 // ════════════════════════════════════════════════════
-// Navigate to All Leads filtered by a specific recruiter
-// Sets filter AFTER render so it doesn't get wiped by render()'s F reset
+// Navigate to All Leads filtered by a specific recruiter (from dashboard table)
 function viewRecruiterLeads(name) {
+  _activeRecruiter = null;
   page = 'all';
   prevPage = 'dashboard';
   render();
-  // Apply owner filter after render has set up the page
   setTimeout(() => {
     F.owners = [name];
     loadLeads(0);
@@ -1477,9 +1511,125 @@ function viewRecruiterLeads(name) {
   }, 100);
 }
 
+// Click recruiter name in sidebar → show their full view
+async function viewRecruiterDashboard(name) {
+  _activeRecruiter = name;
+  prevPage = 'dashboard';
+  page = 'rec-view';
+
+  // Get recruiter's counts
+  const [total, called, pipeline, followups] = await Promise.all([
+    SB.count('leads', [`owner=eq.${encodeURIComponent(name)}`]),
+    SB.count('leads', [`owner=eq.${encodeURIComponent(name)}`, `or=(last_call_outcome.eq.Connected,last_call_outcome.eq.Callback Requested)`]),
+    SB.count('leads', [`owner=eq.${encodeURIComponent(name)}`, `status=in.(Interested,Shortlisted)`]),
+    SB.count('leads', [`owner=eq.${encodeURIComponent(name)}`, `followup_date=not.is.null`]),
+  ]);
+
+  document.getElementById('pg-title').textContent = name;
+  document.getElementById('tba').innerHTML = `
+    <button class="btn" onclick="_activeRecruiter=null;nav('dashboard')">← Back</button>
+    <button class="btn pri" onclick="viewRecruiterLeads('${name}')">View all leads</button>`;
+  document.getElementById('asgbar').classList.remove('on');
+  navRender();
+
+  document.getElementById('content').innerHTML = `
+    <div class="metrics" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+      <div class="metric"><div class="mv blue">${total.toLocaleString()}</div><div class="ml">Assigned</div></div>
+      <div class="metric"><div class="mv green">${called.toLocaleString()}</div><div class="ml">Called</div></div>
+      <div class="metric"><div class="mv warn">${pipeline.toLocaleString()}</div><div class="ml">Pipeline</div></div>
+      <div class="metric"><div class="mv red">${followups.toLocaleString()}</div><div class="ml">Follow-ups</div></div>
+    </div>
+    <div id="rec-detail-content">
+      <div class="loader-wrap"><div class="spinner"></div></div>
+    </div>`;
+
+  // Load recruiter's performance breakdown + recent leads in parallel
+  const allStatuses   = ['New','Contacted','Interested','Shortlisted','Submitted to Client','Not Interested','Not Reachable','On Hold','Placed'];
+  const callOutcomes  = ['Not Called','Connected','Not Reachable',"Didn't Respond",'Callback Requested','Wrong Number'];
+
+  const [statusCounts, callCounts, recentLeads] = await Promise.all([
+    Promise.all(allStatuses.map(s =>
+      SB.count('leads',[`owner=eq.${encodeURIComponent(name)}`,`status=eq.${encodeURIComponent(s)}`])
+    )),
+    Promise.all(callOutcomes.map(o => {
+      if(o==='Not Called') return SB.count('leads',[
+        `owner=eq.${encodeURIComponent(name)}`,
+        `or=(last_call_outcome.eq.,last_call_outcome.is.null,last_call_outcome.eq.Not Called)`
+      ]);
+      return SB.count('leads',[`owner=eq.${encodeURIComponent(name)}`,`last_call_outcome=eq.${encodeURIComponent(o)}`]);
+    })),
+    SB.select('leads',{
+      filters:[`owner=eq.${encodeURIComponent(name)}`],
+      order:'create_date.desc,lead_id.desc',
+      limit:10
+    })
+  ]);
+
+  const el = document.getElementById('rec-detail-content');
+  if(!el) return;
+
+  const barRow = (label, n, total, color) => {
+    const pct = total>0?Math.round(n/total*100):0;
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+      <span style="font-size:11px;width:140px;color:#888;white-space:nowrap">${label}</span>
+      <div style="flex:1;height:5px;background:#f0f1f5;border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${color};border-radius:3px"></div></div>
+      <span style="font-size:11px;font-family:monospace;width:32px;text-align:right">${n}</span>
+    </div>`;
+  };
+
+  const statusColors = {
+    New:'#4361ee',Contacted:'#3b82f6',Interested:'#22c55e',Shortlisted:'#f59e0b',
+    'Submitted to Client':'#8b5cf6','Not Interested':'#ef4444','Not Reachable':'#f87171',
+    'On Hold':'#94a3b8',Placed:'#10b981'
+  };
+  const outcomeColors = {
+    'Not Called':'#e2e8f0',Connected:'#22c55e','Not Reachable':'#ef4444',
+    "Didn't Respond":'#f87171','Callback Requested':'#f59e0b','Wrong Number':'#94a3b8'
+  };
+
+  el.innerHTML = `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+    <div class="card"><div class="ch"><div class="ch-t">By status</div></div>
+      <div style="padding:14px">
+        ${allStatuses.map((s,i)=>barRow(s,statusCounts[i],total,statusColors[s]||'#4361ee')).join('')}
+      </div>
+    </div>
+    <div class="card"><div class="ch"><div class="ch-t">By call outcome</div></div>
+      <div style="padding:14px">
+        ${callOutcomes.map((o,i)=>barRow(o,callCounts[i],total,outcomeColors[o]||'#4361ee')).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch">
+      <div class="ch-t">Recent leads</div>
+      <button class="btn pri" style="font-size:11px" onclick="viewRecruiterLeads('${name}')">View all ${total.toLocaleString()} →</button>
+    </div>
+    <div style="overflow-x:auto">
+    <table class="tbl"><thead><tr>
+      <th>Name</th><th>Standard Role</th><th>City</th><th>Status</th><th>Last Call</th><th>Created</th>
+    </tr></thead><tbody>
+    ${(recentLeads.data||[]).map(l=>`<tr onclick="navD('${l.lead_id}')">
+      <td style="font-weight:600">${l.full_name}<br>
+        <span style="font-size:10px;color:#94a3b8;font-family:monospace">${l.phone_primary}</span>
+      </td>
+      <td style="font-size:11px">${l.standard_role||'—'}</td>
+      <td>${l.current_city||'—'}</td>
+      <td><span class="badge ${SC[l.status]||'b-new'}">${l.status}</span></td>
+      <td style="font-size:11px;color:#64748b">${l.last_call_outcome||'—'}</td>
+      <td style="font-family:monospace;font-size:11px;color:#94a3b8">${l.create_date||'—'}</td>
+    </tr>`).join('')}
+    </tbody></table>
+    </div>
+  </div>`;
+}
+
 function render(){
   // Always enforce role from session — prevents role drift
   if(SESSION) appRole = SESSION.role;
+  // Don't reset _activeRecruiter — it persists across renders for rec-view
   document.getElementById('sb-name').textContent=SESSION?.name||'—';
   document.getElementById('sb-badge').textContent=appRole==='manager'?'Manager':'Recruiter';
   document.getElementById('sb-badge').className='sb-badge '+(appRole==='manager'?'bm':'br');
@@ -1497,6 +1647,7 @@ function render(){
   else if(page==='my-leads')    renderLeadsPage('My leads');
   else if(page==='followups')   renderLeadsPage('Follow-ups today');
   else if(page==='detail')      renderDetail();
+  else if(page==='rec-view')    viewRecruiterDashboard(_activeRecruiter||'');
 }
 
 // ════════════════════════════════════════════════════
