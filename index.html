@@ -215,6 +215,7 @@ textarea.fi-full{resize:vertical;min-height:64px}
 // ════════════════════════════════════════════════════
 const SB_URL = 'https://esgyriktdmlqnestbysl.supabase.co';       // e.g. https://xxxx.supabase.co
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZ3lyaWt0ZG1scW5lc3RieXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODAxODksImV4cCI6MjA5Mjk1NjE4OX0.BP8wrpjLhTNuUfmzWIiklaOVeV9Fzm97Xo2gW9vmrT8';  // long string from Settings → API
+
 // ════════════════════════════════════════════════════
 // SUPABASE API WRAPPER
 // Direct REST calls — no SDK needed
@@ -306,6 +307,8 @@ let prevPage         = 'dashboard';
 let selLeads         = new Set();
 let activeLead       = null;
 let _activeRecruiter = null;  // recruiter being viewed in manager sidebar
+let _savedF       = null;     // saved filter state before opening lead detail
+let _savedOffset  = 0;        // saved pagination offset before opening lead detail
 
 // Pagination state
 const PAGE_SIZE = 100;    // rows per page — instant load from Supabase
@@ -952,8 +955,30 @@ function openRecruiterLeads(name) {
   page = 'rec-leads';
   render();
 }
-function navD(lid){prevPage=page;activeLead=lid;page='detail';render();}
-function goBack(){page=prevPage||'dashboard';render();}
+function navD(lid){
+  // Save current filter state and pagination before opening lead
+  _savedF      = JSON.parse(JSON.stringify(F));
+  _savedOffset = _pgOffset;
+  prevPage=page;
+  activeLead=lid;
+  page='detail';
+  render();
+}
+function goBack(){
+  page = prevPage || 'dashboard';
+  // Restore filters if coming back from lead detail
+  if(_savedF) {
+    F = JSON.parse(JSON.stringify(_savedF));
+    _savedF = null;
+  }
+  render();
+  // Restore pagination and re-apply filters after render
+  if(_savedOffset > 0) {
+    const offset = _savedOffset;
+    _savedOffset = 0;
+    setTimeout(() => loadLeads(offset), 50);
+  }
+}
 
 // ════════════════════════════════════════════════════
 // DASHBOARD
@@ -1906,9 +1931,12 @@ function render(){
   document.getElementById('asgbar').classList.remove('on');
   selLeads=new Set();
   navRender();
-  F={q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],
-     call_outcomes:[],eng_levels:[],naukri_titles:[],
-     ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
+  // Only reset filters when navigating to a new page (not when restoring from detail)
+  if(page !== prevPage || page === 'dashboard' || page === 'rec-dashboard') {
+    F={q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],
+       call_outcomes:[],eng_levels:[],naukri_titles:[],
+       ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
+  }
 
   if(page==='dashboard')        renderDashboard();
   else if(page==='all')         renderLeadsPage('All leads',true);
