@@ -1482,7 +1482,6 @@ function navRender(){
       {id:'dashboard', lbl:'Dashboard',    ico:'⊞'},
       {id:'all',       lbl:'All leads',    ico:'≡', badge:(COUNTS.total||0).toLocaleString(), bc:'nb-b'},
       {id:'assign',    lbl:'Assign leads', ico:'◎', badge:(COUNTS.unassigned||0).toLocaleString(), bc:'nb-r'},
-      {id:'performance',lbl:'Performance', ico:'↗'},
     ].forEach(it=>{
       const d=document.createElement('div');
       d.className='ni'+(page===it.id&&!_activeRecruiter?' on':'');
@@ -1924,6 +1923,9 @@ async function viewRecruiterDashboard(name) {
 function render(){
   // Always enforce role from session — prevents role drift
   if(SESSION) appRole = SESSION.role;
+  // Enforce switcher visibility on every render
+  const swWrap = document.getElementById('sw-wrap');
+  if(swWrap) swWrap.style.display = SESSION && SESSION.role === 'manager' ? 'flex' : 'none';
   // Don't reset _activeRecruiter — it persists across renders for rec-view
   document.getElementById('sb-name').textContent=SESSION?.name||'—';
   document.getElementById('sb-badge').textContent=appRole==='manager'?'Manager':'Recruiter';
