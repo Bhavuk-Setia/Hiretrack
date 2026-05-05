@@ -215,7 +215,6 @@ textarea.fi-full{resize:vertical;min-height:64px}
 // ════════════════════════════════════════════════════
 const SB_URL = 'https://esgyriktdmlqnestbysl.supabase.co';       // e.g. https://xxxx.supabase.co
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZ3lyaWt0ZG1scW5lc3RieXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODAxODksImV4cCI6MjA5Mjk1NjE4OX0.BP8wrpjLhTNuUfmzWIiklaOVeV9Fzm97Xo2gW9vmrT8';  // long string from Settings → API
-
 // ════════════════════════════════════════════════════
 // SUPABASE API WRAPPER
 // Direct REST calls — no SDK needed
@@ -316,9 +315,9 @@ let _pgFilters  = [];     // active Supabase filter strings
 let _pgTitle    = '';
 let _pgAssign   = false;
 
-const STATUSES=['New','Contacted','Interested','Shortlisted',
+const STATUSES=['New','Rejected','Interested','Shortlisted',
   'Submitted to Client','Placed','Not Interested','On Hold'];
-const SC={New:'b-new',Contacted:'b-con',Interested:'b-int',Shortlisted:'b-sho',
+const SC={New:'b-new',Rejected:'b-con',Interested:'b-int',Shortlisted:'b-sho',
   'Not Interested':'b-no','On Hold':'b-new',
   'Submitted to Client':'b-sho',Placed:'b-int'};
 const MGR_ONLY = ['full_name','phone_primary','email'];
@@ -980,7 +979,7 @@ function renderDashboard(){
 }
 
 async function loadDashboardDetails(){
-  const allStatuses = ['New','Contacted','Interested','Shortlisted',
+  const allStatuses = ['New','Rejected','Interested','Shortlisted',
     'Submitted to Client','Not Interested','Not Reachable','On Hold'];
 
   // Fetch all counts in parallel — each is a fast HEAD COUNT query
@@ -1013,7 +1012,7 @@ async function loadDashboardDetails(){
   el.innerHTML=`
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
   <div class="card"><div class="ch"><div class="ch-t">Pipeline by status</div></div><div style="padding:14px">
-    ${['New','Contacted','Interested','Shortlisted','Submitted to Client','Not Interested','Not Reachable'].map(s=>{
+    ${['New','Rejected','Interested','Shortlisted','Submitted to Client','Not Interested','Not Reachable'].map(s=>{
       const n=scMap[s]||0;
       const pct=total>0?Math.round(n/total*100):0;
       const colours={'Interested':'#22c55e','Shortlisted':'#f59e0b',
@@ -1078,7 +1077,7 @@ async function renderPerformance(){
   // For recruiter: show only their own stats
   // For manager: show all recruiters
   const targetRecruiters = appRole==='recruiter' ? [SESSION.name] : RECRUITERS;
-  const allStatuses = ['New','Contacted','Interested','Shortlisted',
+  const allStatuses = ['New','Rejected','Interested','Shortlisted',
     'Submitted to Client','Not Interested','Not Reachable','On Hold','Placed'];
   const callOutcomes = ['Not Called','Connected','Not Reachable',
     "Didn't Respond",'Callback Requested','Wrong Number'];
@@ -1110,7 +1109,7 @@ async function renderPerformance(){
   }));
 
   const statusLabel = s => {
-    const colours={New:'b-new',Contacted:'b-con',Interested:'b-int',
+    const colours={New:'b-new',Rejected:'b-con',Interested:'b-int',
       Shortlisted:'b-sho','Not Interested':'b-no','Not Reachable':'b-no',
       'Submitted to Client':'b-sho',Placed:'b-int'};
     return `<span class="badge ${colours[s]||'b-new'}">${s}</span>`;
@@ -1130,7 +1129,7 @@ async function renderPerformance(){
         ${allStatuses.map((s,i)=>{
           const n=statusCounts[i]||0;if(!n&&s==='Placed')return'';
           const pct=total>0?Math.round(n/total*100):0;
-          const bar={New:'#4361ee',Contacted:'#3b82f6',Interested:'#22c55e',
+          const bar={New:'#4361ee',Rejected:'#3b82f6',Interested:'#22c55e',
             Shortlisted:'#f59e0b','Submitted to Client':'#8b5cf6',
             'Not Interested':'#ef4444','On Hold':'#94a3b8',Placed:'#10b981'}[s]||'#4361ee';
           return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
@@ -1570,7 +1569,7 @@ async function renderRecruiterDashboard() {
   ]);
 
   // Fetch status breakdown and recent leads in parallel
-  const allStatuses  = ['New','Contacted','Interested','Shortlisted',
+  const allStatuses  = ['New','Rejected','Interested','Shortlisted',
     'Submitted to Client','Not Interested','Not Reachable','On Hold','Placed'];
   const callOutcomes = ['Not Called','Connected','Not Reachable',
     "Didn't Respond",'Callback Requested','Wrong Number'];
@@ -1615,7 +1614,7 @@ async function renderRecruiterDashboard() {
     </div>`;
   };
 
-  const sColors = {New:'#4361ee',Contacted:'#3b82f6',Interested:'#22c55e',
+  const sColors = {New:'#4361ee',Rejected:'#3b82f6',Interested:'#22c55e',
     Shortlisted:'#f59e0b','Submitted to Client':'#8b5cf6',
     'Not Interested':'#ef4444','Not Reachable':'#f87171',
     'On Hold':'#94a3b8',Placed:'#10b981'};
@@ -1815,7 +1814,7 @@ async function viewRecruiterDashboard(name) {
     </div>`;
 
   // Load recruiter's performance breakdown + recent leads in parallel
-  const allStatuses   = ['New','Contacted','Interested','Shortlisted','Submitted to Client','Not Interested','Not Reachable','On Hold','Placed'];
+  const allStatuses   = ['New','Rejected','Interested','Shortlisted','Submitted to Client','Not Interested','Not Reachable','On Hold','Placed'];
   const callOutcomes  = ['Not Called','Connected','Not Reachable',"Didn't Respond",'Callback Requested','Wrong Number'];
 
   const [statusCounts, callCounts, recentLeads] = await Promise.all([
@@ -1850,7 +1849,7 @@ async function viewRecruiterDashboard(name) {
   };
 
   const statusColors = {
-    New:'#4361ee',Contacted:'#3b82f6',Interested:'#22c55e',Shortlisted:'#f59e0b',
+    New:'#4361ee',Rejected:'#3b82f6',Interested:'#22c55e',Shortlisted:'#f59e0b',
     'Submitted to Client':'#8b5cf6','Not Interested':'#ef4444','Not Reachable':'#f87171',
     'On Hold':'#94a3b8',Placed:'#10b981'
   };
