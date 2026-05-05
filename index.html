@@ -426,6 +426,8 @@ function buildFilters() {
   if(page === 'assign')    filters.push('or=(owner.eq.,owner.is.null)');
   if(page === 'my-leads' || page === 'followups')
     filters.push(`owner=eq.${encodeURIComponent(SESSION.name)}`);
+  if(page === 'rec-leads' && _activeRecruiter)
+    filters.push(`owner=eq.${encodeURIComponent(_activeRecruiter)}`);
   if(page === 'followups') filters.push('followup_date=not.is.null');
 
   // UI filters
@@ -921,8 +923,16 @@ function rebuildAsgDrop(){
 // NAVIGATION
 // ════════════════════════════════════════════════════
 function nav(target){
-  if(target!=='rec-view') _activeRecruiter=null;
+  if(target!=='rec-view' && target!=='rec-leads') _activeRecruiter=null;
   prevPage=page;page=target;render();
+}
+
+// Open a recruiter's My Leads view — shows their leads exactly as they see it
+function openRecruiterLeads(name) {
+  _activeRecruiter = name;
+  prevPage = 'rec-view';
+  page = 'rec-leads';
+  render();
 }
 function navD(lid){prevPage=page;activeLead=lid;page='detail';render();}
 function goBack(){page=prevPage||'dashboard';render();}
@@ -1511,6 +1521,85 @@ function viewRecruiterLeads(name) {
   }, 100);
 }
 
+// Open recruiter's My Leads as manager (read-only view of their pipeline)
+function renderRecruiterLeads(name) {
+  if(!name) { nav('dashboard'); return; }
+  document.getElementById('pg-title').textContent = name + ' — My Leads';
+  document.getElementById('tba').innerHTML = `
+    <button class="btn" onclick="nav('rec-view')">← Back to ${name}</button>`;
+  document.getElementById('asgbar').classList.remove('on');
+  selLeads = new Set();
+  navRender();
+
+  // Reset filters
+  F={q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],
+     call_outcomes:[],eng_levels:[],naukri_titles:[],
+     ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
+
+  const showOwner = false; // hide owner filter — this is a single recruiter view
+  document.getElementById('content').innerHTML = `
+  <div style="padding:6px 0 10px;display:flex;align-items:center;gap:8px">
+    <span style="font-size:13px;color:#888">Showing leads assigned to</span>
+    <span style="font-size:13px;font-weight:600;color:#4361ee">${name}</span>
+  </div>
+  <div class="fbar">
+    <div class="fbar-r">
+      <input class="fi fi-search" id="main-search" placeholder="Search name, phone, city…"
+        value="${F.q}" autocomplete="off"
+        oninput="F.q=this.value;debounce(()=>loadLeads(0))">
+      ${msHTML('roles')}${msHTML('naukri_titles')}${msHTML('statuses')}${msHTML('cities')}
+      ${msHTML('industries')}${msHTML('depts')}${msHTML('sources')}
+      ${msHTML('call_outcomes')}${msHTML('eng_levels')}
+    </div>
+    <div class="fbar-r">
+      <span style="font-size:11px;font-weight:600;color:#888">CTC (LPA)</span>
+      <div class="num-wrap">
+        <select class="num-op" id="ctc-op" onchange="F.ctc_op=this.value;loadLeads(0)">
+          ${numOpts(F.ctc_op)}
+        </select>
+        <input class="fi-xs" type="number" placeholder="min" value="${F.ctc_a}"
+          oninput="F.ctc_a=this.value;debounce(()=>loadLeads(0))">
+        <span style="font-size:11px;color:#aaa">to</span>
+        <input class="fi-xs" type="number" placeholder="max" value="${F.ctc_b}"
+          oninput="F.ctc_b=this.value;debounce(()=>loadLeads(0))">
+      </div>
+      <span style="font-size:11px;font-weight:600;color:#888;margin-left:8px">Exp (yrs)</span>
+      <div class="num-wrap">
+        <select class="num-op" id="exp-op" onchange="F.exp_op=this.value;loadLeads(0)">
+          ${numOpts(F.exp_op)}
+        </select>
+        <input class="fi-xs" type="number" placeholder="min" value="${F.exp_a}"
+          oninput="F.exp_a=this.value;debounce(()=>loadLeads(0))">
+        <span style="font-size:11px;color:#aaa">to</span>
+        <input class="fi-xs" type="number" placeholder="max" value="${F.exp_b}"
+          oninput="F.exp_b=this.value;debounce(()=>loadLeads(0))">
+      </div>
+      <span id="res-count" style="font-size:11px;color:#888;font-family:monospace;margin-left:auto;white-space:nowrap"></span>
+      <button class="btn" style="font-size:11px" onclick="loadLeads(0)">Clear all</button>
+    </div>
+  </div>
+  <div class="card"><div style="overflow-x:auto">
+    <table class="tbl" id="leads-tbl">
+      <thead><tr>
+        <th><input type="checkbox" class="chk" id="chk-all" onchange="selAll(this)"></th>
+        <th>Name</th><th>Standard Role</th><th>Naukri Title</th><th>Industry</th>
+        <th>Current Role</th><th>Dept</th><th>City</th><th>Exp</th><th>CTC</th>
+        <th>Status</th><th>Last Call</th><th>Source</th><th>Created</th>
+      </tr></thead>
+      <tbody id="leads-tbody">
+        <tr><td colspan="14" style="padding:32px;text-align:center">
+          <div class="spinner" style="margin:0 auto"></div>
+        </td></tr>
+      </tbody>
+    </table>
+  </div></div>
+  <div id="pagination-row"></div>`;
+
+  // Force filter to this recruiter only
+  F.owners = [name];
+  loadLeads(0);
+}
+
 // Click recruiter name in sidebar → show their full view
 async function viewRecruiterDashboard(name) {
   _activeRecruiter = name;
@@ -1528,7 +1617,7 @@ async function viewRecruiterDashboard(name) {
   document.getElementById('pg-title').textContent = name;
   document.getElementById('tba').innerHTML = `
     <button class="btn" onclick="_activeRecruiter=null;nav('dashboard')">← Back</button>
-    <button class="btn pri" onclick="viewRecruiterLeads('${name}')">View all leads</button>`;
+    <button class="btn pri" onclick="openRecruiterLeads('${name}')">View all leads</button>`;
   document.getElementById('asgbar').classList.remove('on');
   navRender();
 
@@ -1605,7 +1694,7 @@ async function viewRecruiterDashboard(name) {
   <div class="card">
     <div class="ch">
       <div class="ch-t">Recent leads</div>
-      <button class="btn pri" style="font-size:11px" onclick="viewRecruiterLeads('${name}')">View all ${total.toLocaleString()} →</button>
+      <button class="btn pri" style="font-size:11px" onclick="openRecruiterLeads('${name}')">View all ${total.toLocaleString()} leads →</button>
     </div>
     <div style="overflow-x:auto">
     <table class="tbl"><thead><tr>
@@ -1648,6 +1737,7 @@ function render(){
   else if(page==='followups')   renderLeadsPage('Follow-ups today');
   else if(page==='detail')      renderDetail();
   else if(page==='rec-view')    viewRecruiterDashboard(_activeRecruiter||'');
+  else if(page==='rec-leads')   renderRecruiterLeads(_activeRecruiter||'');
 }
 
 // ════════════════════════════════════════════════════
