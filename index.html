@@ -447,19 +447,30 @@ function buildFilters() {
   // Helper: builds a safe filter for values with special chars (commas, &, /, spaces)
   function makeFilter(field, values) {
     if(!values.length) return null;
-    if(values.length === 1) {
+
+    // Special case: "Not Called" for last_call_outcome
+    // Matches empty string, NULL, and literal "Not Called"
+    const expandedValues = values.map(v => {
+      if(v === 'Not Called' && field === 'last_call_outcome') return '__NOT_CALLED__';
+      return v;
+    });
+
+    const parts = [];
+    expandedValues.forEach((v, i) => {
+      if(v === '__NOT_CALLED__') {
+        // Add three conditions for "not called" state
+        parts.push(`last_call_outcome.eq.`);
+        parts.push(`last_call_outcome.is.null`);
+        parts.push(`last_call_outcome.eq.Not Called`);
+      } else {
+        const escaped = values[i].replace(/"/g, '\\"');
+        parts.push(`${field}.eq."${escaped}"`);
+      }
+    });
+
+    if(parts.length === 1 && !values.includes('Not Called')) {
       return `${field}=eq.${encodeURIComponent(values[0])}`;
     }
-    // For multiple values with possible commas/special chars:
-    // Use PostgREST OR with double-quoted values to protect commas inside values
-    // Then encode the entire or=(...) VALUE (everything after "or=") as one unit
-    // This ensures the outer comma separators survive but inner commas are protected
-    const parts = values.map(v => {
-      // Escape any double quotes inside the value
-      const escaped = v.replace(/"/g, '\\"');
-      return `${field}.eq."${escaped}"`;
-    });
-    // Encode the entire parenthetical expression as a single URL param value
     const inner = parts.join(',');
     return `or=${encodeURIComponent('(' + inner + ')')}`;
   }
