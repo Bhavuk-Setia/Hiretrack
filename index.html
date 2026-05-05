@@ -183,6 +183,7 @@ textarea.fi-full{resize:vertical;min-height:64px}
         <button class="sw-tab" id="sw-r" onclick="setRole('recruiter')">Recruiter</button>
       </div>
       <button class="logout-btn" onclick="doLogout()">Sign out</button>
+      <!-- sw-wrap only shown to managers via JS after login -->
     </div>
   </div>
   <div class="main">
@@ -362,10 +363,12 @@ async function doLogin() {
     appRole  = u.role;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-screen').style.display   = 'block';
-    // Only show role switcher to managers (for dev/demo purposes)
+    // Only show role switcher to managers
     if(u.role === 'manager') {
       document.getElementById('sw-wrap').style.display = 'flex';
     }
+    // Set correct landing page per role
+    page = u.role === 'recruiter' ? 'rec-dashboard' : 'dashboard';
     await Promise.all([loadCounts(), loadRecruiters(), loadFilterOptions()]);
     render();
   } else {
@@ -389,18 +392,23 @@ function doLogout(){
 // COUNTS — fast because Supabase counts with SQL
 // ════════════════════════════════════════════════════
 async function loadCounts() {
-  const promises = [
+  const base = [
     SB.count('leads'),
     SB.count('leads', ['or=(owner.eq.,owner.is.null)']),
     SB.count('leads', ['status=in.(Interested,Shortlisted)'])
   ];
-  if(appRole==='recruiter') {
-    promises.push(SB.count('leads', [`owner=eq.${encodeURIComponent(SESSION.name)}`]));
-  } else {
-    promises.push(Promise.resolve(0));
-  }
-  const [total, unassigned, pipeline, myLeads] = await Promise.all(promises);
-  COUNTS = { total, unassigned, pipeline, myLeads };
+  const recName = SESSION ? encodeURIComponent(SESSION.name) : '';
+  const rec = appRole==='recruiter' ? [
+    SB.count('leads', [`owner=eq.${recName}`]),
+    SB.count('leads', [`owner=eq.${recName}`,
+      `or=(last_call_outcome.eq.Connected,last_call_outcome.eq.Callback%20Requested)`]),
+    SB.count('leads', [`owner=eq.${recName}`,`status=in.(Interested,Shortlisted)`]),
+    SB.count('leads', [`owner=eq.${recName}`,`followup_date=not.is.null`]),
+  ] : [Promise.resolve(0),Promise.resolve(0),Promise.resolve(0),Promise.resolve(0)];
+
+  const [total, unassigned, pipeline, myLeads, myCalled, myPipeline, myFollowups]
+    = await Promise.all([...base, ...rec]);
+  COUNTS = { total, unassigned, pipeline, myLeads, myCalled, myPipeline, myFollowups };
 }
 
 async function loadRecruiters() {
@@ -1471,12 +1479,15 @@ function navRender(){
   } else {
     // ── RECRUITER nav ─────────────────────────────────────────────
     [
+      {sec:'overview', items:[
+        {id:'rec-dashboard', lbl:'Dashboard',         ico:'⊞'},
+      ]},
       {sec:'my work', items:[
-        {id:'my-leads',   lbl:'My leads',        ico:'≡', badge:(COUNTS.myLeads||0).toLocaleString(), bc:'nb-g'},
-        {id:'followups',  lbl:'Follow-ups today', ico:'◷'},
+        {id:'my-leads',      lbl:'My leads',           ico:'≡', badge:(COUNTS.myLeads||0).toLocaleString(), bc:'nb-g'},
+        {id:'followups',     lbl:'Follow-ups today',   ico:'◷'},
       ]},
       {sec:'reports', items:[
-        {id:'performance',lbl:'My performance',  ico:'↗'},
+        {id:'performance',   lbl:'My performance',     ico:'↗'},
       ]},
     ].forEach(sec=>{
       const sh=document.createElement('div');sh.className='nsec';sh.textContent=sec.sec;nb.appendChild(sh);
@@ -1519,6 +1530,168 @@ function viewRecruiterLeads(name) {
     const btn = document.querySelector('#msw-owners .ms-btn');
     if(btn) { btn.classList.add('on'); btn.querySelector('span').textContent = 'Owner (1)'; }
   }, 100);
+}
+
+// Recruiter personal dashboard — landing page when they log in
+async function renderRecruiterDashboard() {
+  document.getElementById('pg-title').textContent = 'Dashboard';
+  document.getElementById('tba').innerHTML =
+    `<button class="btn" onclick="renderRecruiterDashboard()">↻ Refresh</button>`;
+  document.getElementById('asgbar').classList.remove('on');
+  document.getElementById('content').innerHTML =
+    `<div class="loader-wrap"><div class="spinner"></div></div>`;
+
+  const name = SESSION.name;
+
+  // Fetch all counts in parallel
+  const [assigned, called, pipeline, followups] = await Promise.all([
+    SB.count('leads', [`owner=eq.${encodeURIComponent(name)}`]),
+    SB.count('leads', [
+      `owner=eq.${encodeURIComponent(name)}`,
+      `or=(last_call_outcome.eq.${encodeURIComponent('Connected')},last_call_outcome.eq.${encodeURIComponent('Callback Requested')})`
+    ]),
+    SB.count('leads', [
+      `owner=eq.${encodeURIComponent(name)}`,
+      `status=in.(Interested,Shortlisted)`
+    ]),
+    SB.count('leads', [
+      `owner=eq.${encodeURIComponent(name)}`,
+      `followup_date=not.is.null`
+    ]),
+  ]);
+
+  // Fetch status breakdown and recent leads in parallel
+  const allStatuses  = ['New','Contacted','Interested','Shortlisted',
+    'Submitted to Client','Not Interested','Not Reachable','On Hold','Placed'];
+  const callOutcomes = ['Not Called','Connected','Not Reachable',
+    "Didn't Respond",'Callback Requested','Wrong Number'];
+
+  const [statusCounts, callCounts, recentLeads, followupLeads] = await Promise.all([
+    Promise.all(allStatuses.map(s =>
+      SB.count('leads',[`owner=eq.${encodeURIComponent(name)}`,`status=eq.${encodeURIComponent(s)}`])
+    )),
+    Promise.all(callOutcomes.map(o => {
+      if(o==='Not Called') return SB.count('leads',[
+        `owner=eq.${encodeURIComponent(name)}`,
+        `or=(last_call_outcome.eq.,last_call_outcome.is.null,last_call_outcome.eq.Not Called)`
+      ]);
+      return SB.count('leads',[
+        `owner=eq.${encodeURIComponent(name)}`,
+        `last_call_outcome=eq.${encodeURIComponent(o)}`
+      ]);
+    })),
+    SB.select('leads',{
+      filters:[`owner=eq.${encodeURIComponent(name)}`],
+      order:'create_date.desc,lead_id.desc',
+      limit:5
+    }),
+    SB.select('leads',{
+      filters:[
+        `owner=eq.${encodeURIComponent(name)}`,
+        `followup_date=not.is.null`,
+        `followup_date=lte.${new Date().toISOString().slice(0,10)}`
+      ],
+      order:'followup_date.asc',
+      limit:5
+    }),
+  ]);
+
+  const barRow = (label, n, tot, color) => {
+    const pct = tot>0 ? Math.round(n/tot*100) : 0;
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+      <span style="font-size:11px;width:140px;color:#888;white-space:nowrap">${label}</span>
+      <div style="flex:1;height:5px;background:#f0f1f5;border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${color};border-radius:3px"></div></div>
+      <span style="font-size:11px;font-family:monospace;width:32px;text-align:right">${n}</span>
+    </div>`;
+  };
+
+  const sColors = {New:'#4361ee',Contacted:'#3b82f6',Interested:'#22c55e',
+    Shortlisted:'#f59e0b','Submitted to Client':'#8b5cf6',
+    'Not Interested':'#ef4444','Not Reachable':'#f87171',
+    'On Hold':'#94a3b8',Placed:'#10b981'};
+  const oColors = {'Not Called':'#e2e8f0',Connected:'#22c55e',
+    'Not Reachable':'#ef4444',"Didn't Respond":'#f87171',
+    'Callback Requested':'#f59e0b','Wrong Number':'#94a3b8'};
+
+  document.getElementById('content').innerHTML = `
+  <!-- 4 metric cards -->
+  <div class="metrics" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+    <div class="metric">
+      <div class="mv blue">${assigned.toLocaleString()}</div>
+      <div class="ml">Assigned</div>
+    </div>
+    <div class="metric">
+      <div class="mv green">${called.toLocaleString()}</div>
+      <div class="ml">Called</div>
+    </div>
+    <div class="metric">
+      <div class="mv warn">${pipeline.toLocaleString()}</div>
+      <div class="ml">Pipeline</div>
+    </div>
+    <div class="metric">
+      <div class="mv red">${followups.toLocaleString()}</div>
+      <div class="ml">Follow-ups</div>
+    </div>
+  </div>
+
+  <!-- Performance charts -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+    <div class="card">
+      <div class="ch"><div class="ch-t">By status</div></div>
+      <div style="padding:14px">
+        ${allStatuses.map((s,i)=>barRow(s,statusCounts[i],assigned,sColors[s]||'#4361ee')).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ch-t">By call outcome</div></div>
+      <div style="padding:14px">
+        ${callOutcomes.map((o,i)=>barRow(o,callCounts[i],assigned,oColors[o]||'#4361ee')).join('')}
+      </div>
+    </div>
+  </div>
+
+  <!-- Follow-ups due today / overdue -->
+  ${(followupLeads.data||[]).length ? `
+  <div class="card" style="margin-bottom:12px">
+    <div class="ch">
+      <div class="ch-t">📅 Follow-ups due</div>
+      <button class="btn" onclick="nav('followups')">View all →</button>
+    </div>
+    <table class="tbl"><thead><tr>
+      <th>Name</th><th>Phone</th><th>Status</th><th>Follow-up date</th><th>Notes</th>
+    </tr></thead><tbody>
+    ${(followupLeads.data||[]).map(l=>`<tr onclick="navD('${l.lead_id}')">
+      <td style="font-weight:600">${l.full_name}</td>
+      <td style="font-family:monospace;font-size:11px">${l.phone_primary}</td>
+      <td><span class="badge ${SC[l.status]||'b-new'}">${l.status}</span></td>
+      <td style="font-family:monospace;font-size:11px;color:${l.followup_date<=new Date().toISOString().slice(0,10)?'#ef4444':'#64748b'}">${l.followup_date}</td>
+      <td style="font-size:11px;color:#888">${l.last_call_notes||'—'}</td>
+    </tr>`).join('')}
+    </tbody></table>
+  </div>` : ''}
+
+  <!-- Recent leads -->
+  <div class="card">
+    <div class="ch">
+      <div class="ch-t">Recent leads</div>
+      <button class="btn pri" onclick="nav('my-leads')">View all my leads →</button>
+    </div>
+    <table class="tbl"><thead><tr>
+      <th>Name</th><th>Standard Role</th><th>City</th><th>Status</th><th>Last call</th><th>Created</th>
+    </tr></thead><tbody>
+    ${(recentLeads.data||[]).map(l=>`<tr onclick="navD('${l.lead_id}')">
+      <td style="font-weight:600">${l.full_name}<br>
+        <span style="font-size:10px;color:#94a3b8;font-family:monospace">${l.phone_primary}</span>
+      </td>
+      <td style="font-size:11px">${l.standard_role||'—'}</td>
+      <td>${l.current_city||'—'}</td>
+      <td><span class="badge ${SC[l.status]||'b-new'}">${l.status}</span></td>
+      <td style="font-size:11px;color:#64748b">${l.last_call_outcome||'—'}</td>
+      <td style="font-family:monospace;font-size:11px;color:#94a3b8">${l.create_date||'—'}</td>
+    </tr>`).join('')}
+    </tbody></table>
+  </div>`;
 }
 
 // Open recruiter's My Leads as manager (read-only view of their pipeline)
@@ -1729,15 +1902,16 @@ function render(){
      call_outcomes:[],eng_levels:[],naukri_titles:[],
      ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
 
-  if(page==='dashboard')    renderDashboard();
-  else if(page==='all')     renderLeadsPage('All leads',true);
-  else if(page==='assign')  renderLeadsPage('Assign leads',true);
+  if(page==='dashboard')        renderDashboard();
+  else if(page==='all')         renderLeadsPage('All leads',true);
+  else if(page==='assign')      renderLeadsPage('Assign leads',true);
   else if(page==='performance') renderPerformance();
   else if(page==='my-leads')    renderLeadsPage('My leads');
   else if(page==='followups')   renderLeadsPage('Follow-ups today');
   else if(page==='detail')      renderDetail();
   else if(page==='rec-view')    viewRecruiterDashboard(_activeRecruiter||'');
   else if(page==='rec-leads')   renderRecruiterLeads(_activeRecruiter||'');
+  else if(page==='rec-dashboard') renderRecruiterDashboard();
 }
 
 // ════════════════════════════════════════════════════
