@@ -377,8 +377,8 @@ const KEEP_COLS = {
 // ── Merge rules ──────────────────────────────────────────────────
 const TAKE_NEW    = ['naukri_job_title','standard_role','current_company',
   'current_designation','experience_yrs','current_ctc_lpa','industry',
-  'department','date_applied'];
-const TAKE_NEWER  = ['email','current_city','full_name','gender'];
+  'department','date_applied','current_city'];
+const TAKE_NEWER  = ['email','full_name','gender'];
 const KEEP_OLD    = ['status','owner','shortlisted_for','followup_date',
   'last_call_outcome','last_call_date','last_call_notes','english_proficiency',
   'lead_id','source_channel','create_date','phone_primary'];
@@ -757,12 +757,13 @@ async function processFile() {
       } else {
         // Duplicate — check for field changes
         const changes = [];
+        let naukriTitleChanged = false;  // track if naukri title changed
 
         // Fields where we compare after normalising to same case + whitespace
         // This prevents false changes like "Banking Collection" vs "banking Collection"
         const TEXT_FIELDS = new Set([
           'current_company','current_designation','department',
-          'naukri_job_title','standard_role','industry','gender'
+          'naukri_job_title','standard_role','industry','gender','current_city'
         ]);
 
         function normalise(val) {
@@ -801,12 +802,28 @@ async function processFile() {
 
           // Text fields — compare normalised (lowercase) to ignore case differences
           if(TEXT_FIELDS.has(field)) {
-            if(normalise(nv) !== normalise(ov)) changes.push({field, old:ov, new:nv});
+            if(normalise(nv) !== normalise(ov)) {
+              changes.push({field, old:ov, new:nv});
+              if(field === 'naukri_job_title') naukriTitleChanged = true;
+            }
             continue;
           }
 
           // Default — direct comparison
           if(nv !== ov) changes.push({field, old:ov, new:nv});
+        }
+
+        // If naukri_job_title changed, re-derive standard_role
+        if(naukriTitleChanged) {
+          const newTitle   = lead.naukri_job_title;
+          const newRole    = mapRole(newTitle);
+          const oldRole    = existing['standard_role'] ? String(existing['standard_role']).trim() : '';
+          if(newRole && normalise(newRole) !== normalise(oldRole)) {
+            // Remove any existing standard_role change (from TAKE_NEW) and replace
+            const existingRoleIdx = changes.findIndex(c => c.field === 'standard_role');
+            if(existingRoleIdx >= 0) changes.splice(existingRoleIdx, 1);
+            changes.push({ field: 'standard_role', old: oldRole, new: newRole });
+          }
         }
 
         for(const field of TAKE_NEWER) {
