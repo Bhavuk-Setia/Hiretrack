@@ -1161,6 +1161,9 @@ function resetTool() {
 
   // Go back to step 1
   setStep(1);
+
+  // Re-wire file input (reset clears event listeners in some browsers)
+  setTimeout(wireUp, 50);
 }
 
 function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
