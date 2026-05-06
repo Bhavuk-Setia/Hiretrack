@@ -377,8 +377,8 @@ const KEEP_COLS = {
 // ── Merge rules ──────────────────────────────────────────────────
 const TAKE_NEW    = ['naukri_job_title','standard_role','current_company',
   'current_designation','experience_yrs','current_ctc_lpa','industry',
-  'department','date_applied','current_city'];
-const TAKE_NEWER  = ['email','full_name','gender'];
+  'department','date_applied'];
+const TAKE_NEWER  = ['email','current_city','full_name','gender'];
 const KEEP_OLD    = ['status','owner','shortlisted_for','followup_date',
   'last_call_outcome','last_call_date','last_call_notes','english_proficiency',
   'lead_id','source_channel','create_date','phone_primary'];
@@ -537,21 +537,75 @@ const ROLE_MAP = {
   'team lead':'Team Lead – Sales / Operations',
   'team leader':'Team Lead – Sales / Operations',
   'collection':'Team Lead – Sales / Operations',
+  'delivery leader':'Team Lead – Sales / Operations',
+  'group leader':'Team Lead – Sales / Operations',
+  'associate director':'Senior Manager / AVP / Director',
+  'avp':'Senior Manager / AVP / Director',
+  'director':'Senior Manager / AVP / Director',
+  'national head':'Senior Manager / AVP / Director',
+  'national sales manager':'Senior Manager / AVP / Director',
+  'marketing head':'Senior Manager / AVP / Director',
   'agm':'Senior Manager / AVP / Director',
   'gm-':'Senior Manager / AVP / Director',
+  'assistant general manager':'Assistant Manager / Manager',
   'am/dm':'Assistant Manager / Manager',
   'assistant manager':'Assistant Manager / Manager',
+  'operations manager':'Assistant Manager / Manager',
+  'operation manager':'Assistant Manager / Manager',
+  'manager (operations)':'Assistant Manager / Manager',
+  'senior operation':'Assistant Manager / Manager',
+  'research manager':'Assistant Manager / Manager',
+  'brand manager':'Assistant Manager / Manager',
+  'business intelligence':'Assistant Manager / Manager',
+  'supply chain manager':'Assistant Manager / Manager',
+  'warehouse manager':'Assistant Manager / Manager',
+  'logistics manager':'Assistant Manager / Manager',
+  'key account':'Assistant Manager / Manager',
+  'account strategist':'Assistant Manager / Manager',
+  'senior analyst':'Assistant Manager / Manager',
+  'design lead':'Assistant Manager / Manager',
+  'rta':'Assistant Manager / Manager',
+  'rtm':'Assistant Manager / Manager',
+  'sales associate':'Outbound / Inbound Sales Executive',
   'sales executive':'Outbound / Inbound Sales Executive',
+  'sales strategist':'Outbound / Inbound Sales Executive',
+  'sales development':'Outbound / Inbound Sales Executive',
+  'sales representative':'Outbound / Inbound Sales Executive',
+  'senior sales associate':'Outbound / Inbound Sales Executive',
+  'inside sales':'Outbound / Inbound Sales Executive',
+  'social media':'Outbound / Inbound Sales Executive',
+  'ad operations':'Outbound / Inbound Sales Executive',
+  'showroom executive':'Outbound / Inbound Sales Executive',
+  'front office sales':'Outbound / Inbound Sales Executive',
+  'account executive':'Outbound / Inbound Sales Executive',
+  'process associate':'Outbound / Inbound Sales Executive',
   'business development':'Outbound / Inbound Sales Executive',
-  'customer care':'Customer Support Executive',
+  'customer success':'Customer Support Executive',
+  'customer service':'Customer Support Executive',
   'customer support':'Customer Support Executive',
+  'customer care':'Customer Support Executive',
+  'cystomer success':'Customer Support Executive',
+  'cusyomer support':'Customer Support Executive',
+  'clinical executive':'Customer Support Executive',
   'quality analyst':'Quality Analyst',
+  'quality manager':'Quality Analyst',
+  'senior quality':'Quality Analyst',
+  'training manager':'Trainer / Training Manager',
+  'senior training':'Trainer / Training Manager',
+  'group leader training':'Trainer / Training Manager',
   'trainer':'Trainer / Training Manager',
+  'senior manager- t&q':'Trainer / Training Manager',
+  't&q':'Trainer / Training Manager',
+  'hr head':'HR / Talent Acquisition',
+  'business hr':'HR / Talent Acquisition',
+  'hrbp':'HR / Talent Acquisition',
+  'recruitment executive':'HR / Talent Acquisition',
   'recruiter':'HR / Talent Acquisition',
   'talent acquisition':'HR / Talent Acquisition',
-  'operations manager':'Assistant Manager / Manager',
+  'employee relation':'HR / Talent Acquisition',
   'software engineer':'IT / Software',
   'developer':'IT / Software',
+  'desktop engineer':'IT / Software',
 };
 
 function cleanPhone(v) {
@@ -757,13 +811,12 @@ async function processFile() {
       } else {
         // Duplicate — check for field changes
         const changes = [];
-        let naukriTitleChanged = false;  // track if naukri title changed
 
         // Fields where we compare after normalising to same case + whitespace
         // This prevents false changes like "Banking Collection" vs "banking Collection"
         const TEXT_FIELDS = new Set([
           'current_company','current_designation','department',
-          'naukri_job_title','standard_role','industry','gender','current_city'
+          'naukri_job_title','standard_role','industry','gender'
         ]);
 
         function normalise(val) {
@@ -802,28 +855,12 @@ async function processFile() {
 
           // Text fields — compare normalised (lowercase) to ignore case differences
           if(TEXT_FIELDS.has(field)) {
-            if(normalise(nv) !== normalise(ov)) {
-              changes.push({field, old:ov, new:nv});
-              if(field === 'naukri_job_title') naukriTitleChanged = true;
-            }
+            if(normalise(nv) !== normalise(ov)) changes.push({field, old:ov, new:nv});
             continue;
           }
 
           // Default — direct comparison
           if(nv !== ov) changes.push({field, old:ov, new:nv});
-        }
-
-        // If naukri_job_title changed, re-derive standard_role
-        if(naukriTitleChanged) {
-          const newTitle   = lead.naukri_job_title;
-          const newRole    = mapRole(newTitle);
-          const oldRole    = existing['standard_role'] ? String(existing['standard_role']).trim() : '';
-          if(newRole && normalise(newRole) !== normalise(oldRole)) {
-            // Remove any existing standard_role change (from TAKE_NEW) and replace
-            const existingRoleIdx = changes.findIndex(c => c.field === 'standard_role');
-            if(existingRoleIdx >= 0) changes.splice(existingRoleIdx, 1);
-            changes.push({ field: 'standard_role', old: oldRole, new: newRole });
-          }
         }
 
         for(const field of TAKE_NEWER) {
