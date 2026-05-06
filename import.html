@@ -1125,15 +1125,35 @@ function resetTool() {
   document.getElementById('step1-hint').textContent='Upload a file to continue';
   document.getElementById('file-input').value='';
 
-  // Hide all result cards
-  ['upd-card','dup-card','quar-card','email-card'].forEach(id=>{
+  // Hide ALL result cards including new-card
+  ['new-card','upd-card','dup-card','quar-card','email-card'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display='none';
   });
 
+  // Clear table bodies so old data doesn't flash on next import
+  ['new-tbody','upd-tbody','dup-tbody','quar-tbody','email-tbody'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML='';
+  });
+
+  // Reset stats row
+  const sr = document.getElementById('stats-row');
+  if(sr) sr.innerHTML='';
+
+  // Reset count labels
+  ['new-count-lbl','upd-count-lbl','dup-count-lbl','quar-count-lbl','email-count-lbl'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent='';
+  });
+
   // Reset import button
   const importBtn = document.getElementById('import-btn');
-  if(importBtn){ importBtn.style.opacity='1'; importBtn.style.cursor='pointer'; }
+  if(importBtn){
+    importBtn.style.opacity='1';
+    importBtn.style.cursor='pointer';
+    importBtn.disabled=false;
+  }
 
   // Reset step hint
   const hint = document.getElementById('step2-hint');
