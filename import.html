@@ -773,7 +773,9 @@ async function processFile() {
     );
     const maxData = await maxRes2.json();
     if(maxData && maxData[0] && maxData[0].lead_id) {
-      maxId = parseInt(maxData[0].lead_id.replace('L-',''))||totalCount;
+      maxId = parseInt(maxData[0].lead_id.replace('L-',''))||0;
+    } else {
+      maxId = 0; // table is empty — start from L-00001
     }
 
     // 5. Classify each cleaned record
@@ -1070,6 +1072,10 @@ async function startImport() {
 }
 
 function showDone(inserted, updated, errors) {
+  // Save log content before hiding step3
+  const logEl = document.getElementById('import-log');
+  const logHTML = logEl ? logEl.innerHTML : '';
+
   setStep(4);
   document.getElementById('done-summary').innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
@@ -1077,11 +1083,16 @@ function showDone(inserted, updated, errors) {
       <div class="stat stat-u"><div class="stat-val sv-amber">${updated}</div><div class="stat-lbl">Leads updated</div></div>
       <div class="stat ${errors?'stat-e':'stat-n'}"><div class="stat-val ${errors?'sv-orange':'sv-green'}">${errors}</div><div class="stat-lbl">Errors</div></div>
     </div>
-    <p style="color:#888;font-size:13px">
+    <p style="color:#888;font-size:13px;margin-bottom:12px">
       ${errors===0
         ? '✅ All data written to Supabase successfully. Your CRM is up to date.'
-        : `⚠ ${errors} error(s) occurred. Check the import log above. You may need to re-run for the failed batches.`}
-    </p>`;
+        : `⚠ ${errors} error(s) occurred. See the import log below for details.`}
+    </p>
+    ${logHTML ? `
+    <div style="margin-top:12px">
+      <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Import log</div>
+      <div class="log" style="max-height:240px;overflow-y:auto">${logHTML}</div>
+    </div>` : ''}`;
 }
 
 // ════════════════════════════════════════════════════
