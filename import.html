@@ -1024,27 +1024,33 @@ async function startImport() {
         const pct = Math.round(totalInserted/newLeads.length*100);
         document.getElementById('prog-new-fill').style.width = pct+'%';
         document.getElementById('prog-new-pct').textContent  = pct+'%';
-        addLog(`<span class="log-ok">✓ Inserted ${totalInserted} of ${newLeads.length} new leads</span>`);
+        addLog(`<span class="log-ok">✓ Inserted ${totalInserted} of ${newLeads.length} leads</span>`);
       } else {
-        errors++;
-        // Show actual Supabase error message
-        // Show full Supabase error
-        const errMsg   = res.body ? (res.body.message || '') : '';
-        const errHint  = res.body ? (res.body.hint    || '') : '';
-        const errCode  = res.body ? (res.body.code    || '') : '';
-        const errDetail2 = res.body ? (res.body.details || '') : '';
-        addLog(`<span class="log-err">✗ Batch ${Math.floor(i/BATCH)+1} failed (HTTP ${res.status})</span>`);
-        if(errCode)    addLog(`<span class="log-warn">  Code   : ${errCode}</span>`);
-        if(errMsg)     addLog(`<span class="log-warn">  Message: ${errMsg}</span>`);
-        if(errDetail2) addLog(`<span class="log-warn">  Detail : ${errDetail2}</span>`);
-        if(errHint)    addLog(`<span class="log-warn">  Hint   : ${errHint}</span>`);
-        // Log first record fully
-        if(errors === 1) {
-          addLog(`<span class="log-warn">First record: ${JSON.stringify(batch[0])}</span>`);
+        // Batch failed — retry one by one to skip duplicates
+        addLog(`<span class="log-warn">⚠ Batch ${Math.floor(i/BATCH)+1} failed — retrying one by one…</span>`);
+        let batchSkipped = 0;
+        for(const lead of batch) {
+          const r2 = await SB.insert('leads', [lead]);
+          if(r2.ok) {
+            totalInserted++;
+          } else {
+            const isdup = r2.body && (r2.body.code==='23505' ||
+              (r2.body.message||'').includes('duplicate') ||
+              (r2.body.message||'').includes('unique'));
+            if(isdup) {
+              batchSkipped++;
+            } else {
+              errors++;
+              addLog(`<span class="log-err">✗ Failed: ${lead.full_name} (${lead.phone_primary}) — ${r2.body?(r2.body.message||r2.body.code||r2.status):r2.status}</span>`);
+            }
+          }
         }
-        break;
+        const pct = Math.round(totalInserted/newLeads.length*100);
+        document.getElementById('prog-new-fill').style.width = pct+'%';
+        document.getElementById('prog-new-pct').textContent  = pct+'%';
+        if(batchSkipped>0) addLog(`<span class="log-warn">  Skipped ${batchSkipped} duplicate phone(s) in batch</span>`);
       }
-      await sleep(200);
+      await sleep(100);
     }
   }
 
