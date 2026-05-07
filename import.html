@@ -1028,9 +1028,6 @@ async function startImport() {
       } else {
         errors++;
         // Show actual Supabase error message
-        let errMsg = '';
-        try { const eb = await res.body_text || ''; errMsg = eb; } catch(e){}
-        // Try to get error from response body
         // Show full Supabase error
         const errMsg   = res.body ? (res.body.message || '') : '';
         const errHint  = res.body ? (res.body.hint    || '') : '';
