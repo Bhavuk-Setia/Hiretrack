@@ -944,6 +944,7 @@ function showPreview() {
       <td>${l.gender||'—'}</td>
     </tr>`).join('')
     + (newLeads.length>100?`<tr><td colspan="8" style="padding:10px;text-align:center;color:#888">… and ${newLeads.length-100} more</td></tr>`:'');
+  }
 
   // Updates table
   if(updates.length) {
