@@ -656,16 +656,21 @@ function mapRole(title) {
   return 'Unmapped';
 }
 function formatDate(v) {
-  if(!v) return '';
+  if(!v) return null;
   try {
-    // Handle Excel serial dates
+    // Handle Excel serial dates (numbers)
     if(typeof v === 'number') {
       const d = new Date(Math.round((v-25569)*86400*1000));
-      return d.toISOString().slice(0,10);
+      const s = d.toISOString().slice(0,10);
+      return s >= '1900-01-01' ? s : null;
     }
-    const d = new Date(v);
-    return isNaN(d)?'':d.toISOString().slice(0,10);
-  } catch(e) { return ''; }
+    // Reject strings that are clearly not dates (text longer than 12 chars with no digits)
+    const str = String(v).trim();
+    if(str.length > 12 && !/\d/.test(str.slice(0,4))) return null;
+    const d = new Date(str);
+    const s = d.toISOString().slice(0,10);
+    return isNaN(d.getTime()) ? null : (s >= '1900-01-01' ? s : null);
+  } catch(e) { return null; }
 }
 function isEmpty(v) {
   return v===null||v===undefined||String(v).trim()===''||String(v).trim()==='NaN';
