@@ -1031,13 +1031,21 @@ async function startImport() {
         let errMsg = '';
         try { const eb = await res.body_text || ''; errMsg = eb; } catch(e){}
         // Try to get error from response body
-        const errDetail = res.body ? ('— ' + (res.body.message || res.body.hint || JSON.stringify(res.body)).slice(0,150)) : '';
-        addLog(`<span class="log-err">✗ Error inserting batch ${Math.floor(i/BATCH)+1} (status ${res.status}) ${errDetail}</span>`);
-        // Log first record of failed batch to identify the problem field
+        // Show full Supabase error
+        const errMsg   = res.body ? (res.body.message || '') : '';
+        const errHint  = res.body ? (res.body.hint    || '') : '';
+        const errCode  = res.body ? (res.body.code    || '') : '';
+        const errDetail2 = res.body ? (res.body.details || '') : '';
+        addLog(`<span class="log-err">✗ Batch ${Math.floor(i/BATCH)+1} failed (HTTP ${res.status})</span>`);
+        if(errCode)    addLog(`<span class="log-warn">  Code   : ${errCode}</span>`);
+        if(errMsg)     addLog(`<span class="log-warn">  Message: ${errMsg}</span>`);
+        if(errDetail2) addLog(`<span class="log-warn">  Detail : ${errDetail2}</span>`);
+        if(errHint)    addLog(`<span class="log-warn">  Hint   : ${errHint}</span>`);
+        // Log first record fully
         if(errors === 1) {
-          addLog(`<span class="log-warn">First record in failed batch: ${JSON.stringify(batch[0]).slice(0,300)}</span>`);
+          addLog(`<span class="log-warn">First record: ${JSON.stringify(batch[0])}</span>`);
         }
-        break; // stop after first error so we can see what's wrong
+        break;
       }
       await sleep(200);
     }
