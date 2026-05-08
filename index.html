@@ -416,7 +416,7 @@ async function loadCounts() {
 async function loadRecruiters() {
   const res = await SB.select('users', {
     select: 'name',
-    filters: ['role=eq.recruiter'],
+    filters: [],
     limit: 50
   });
   if(res.ok) {
