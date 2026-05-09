@@ -213,8 +213,8 @@ textarea.fi-full{resize:vertical;min-height:64px}
 // ════════════════════════════════════════════════════
 // CONFIG — paste your Supabase project URL and anon key
 // ════════════════════════════════════════════════════
-const SB_URL = 'https://esgyriktdmlqnestbysl.supabase.co';       // e.g. https://xxxx.supabase.co
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZ3lyaWt0ZG1scW5lc3RieXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODAxODksImV4cCI6MjA5Mjk1NjE4OX0.BP8wrpjLhTNuUfmzWIiklaOVeV9Fzm97Xo2gW9vmrT8';  // long string from Settings → API
+const SB_URL = 'YOUR_SUPABASE_URL_HERE';       // e.g. https://xxxx.supabase.co
+const SB_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';  // long string from Settings → API
 
 // ════════════════════════════════════════════════════
 // SUPABASE API WRAPPER
@@ -326,13 +326,13 @@ const SC={New:'b-new',Rejected:'b-con',Interested:'b-int',Shortlisted:'b-sho',
 const MGR_ONLY = ['full_name','phone_primary','email'];
 const REC_EDIT = ['current_city','current_company','standard_role','naukri_job_title',
   'current_designation','department','industry','experience_yrs',
-  'current_ctc_lpa','shortlisted_for'];
+  'current_ctc_lpa','shortlisted_for','process_type'];
 
 // Filter UI state
 let F = {
   q:'', roles:[], statuses:[], cities:[], industries:[],
   depts:[], sources:[], owners:[],
-  call_outcomes:[], eng_levels:[], naukri_titles:[],
+  call_outcomes:[], eng_levels:[], naukri_titles:[], process_types:[],
   ctc_op:'between', ctc_a:'', ctc_b:'',
   exp_op:'between', exp_a:'', exp_b:''
 };
@@ -692,6 +692,8 @@ function buildFilters() {
   if(coF)      filters.push(coF);
   if(engF)     filters.push(engF);
   if(naukriF)  filters.push(naukriF);
+  const procF   = makeFilter('process_type', F.process_types);
+  if(procF)    filters.push(procF);
   if(F.owners.length) {
     if(F.owners.length === 1) {
       filters.push(F.owners[0]==='Unassigned'
@@ -783,7 +785,7 @@ function renderLeadsPage(title, assignMode=false) {
         oninput="F.q=this.value;debounce(()=>loadLeads(0))">
       ${msHTML('roles')}${msHTML('naukri_titles')}${msHTML('statuses')}${msHTML('cities')}
       ${msHTML('industries')}${msHTML('depts')}${msHTML('sources')}
-      ${msHTML('call_outcomes')}${msHTML('eng_levels')}
+      ${msHTML('call_outcomes')}${msHTML('eng_levels')}${msHTML('process_types')}
       ${showOwner?msHTML('owners'):''}
     </div>
     <div class="fbar-r">
@@ -904,7 +906,7 @@ async function reloadLeads() {
 
 function resetF(){
   F={q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],
-     call_outcomes:[],eng_levels:[],naukri_titles:[],
+     call_outcomes:[],eng_levels:[],naukri_titles:[],process_types:[],
      ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
   renderLeadsPage(_pgTitle,_pgAssign);
 }
@@ -915,7 +917,8 @@ function resetF(){
 // ════════════════════════════════════════════════════
 const MS_LABELS={roles:'Standard Role',statuses:'Status',cities:'City',
   industries:'Industry',depts:'Department',sources:'Source',owners:'Owner',
-  call_outcomes:'Call Outcome',eng_levels:'English',naukri_titles:'Naukri Title'};
+  call_outcomes:'Call Outcome',eng_levels:'English',naukri_titles:'Naukri Title',
+  process_types:'Process'};
 const CALL_OUTCOMES = ['Not Called','Connected','Not Reachable',
   "Didn't Respond",'Callback Requested','Wrong Number'];
 const ENG_LEVELS = ['Poor','Average','Good'];
@@ -924,6 +927,7 @@ const MS_STATIC={
   statuses:      STATUSES,
   call_outcomes: CALL_OUTCOMES,
   eng_levels:    ENG_LEVELS,
+  process_types: ['Domestic','International'],
   owners:        ['Unassigned']
 };
 
@@ -931,7 +935,7 @@ function getArr(id){
   return{roles:F.roles,statuses:F.statuses,cities:F.cities,
     industries:F.industries,depts:F.depts,sources:F.sources,owners:F.owners,
     call_outcomes:F.call_outcomes,eng_levels:F.eng_levels,
-    naukri_titles:F.naukri_titles}[id]||[];
+    naukri_titles:F.naukri_titles,process_types:F.process_types}[id]||[];
 }
 
 // For dropdowns that need dynamic options, we pre-load from DB once
@@ -1597,7 +1601,7 @@ async function renderDetail(){
       ${fcell('naukri_job_title','Naukri job title',l)}${fcell('current_designation','Current designation',l)}
       ${fcell('department','Department',l)}${fcell('industry','Industry',l)}
       ${fcell('experience_yrs','Experience (yrs)',l)}${fcell('current_ctc_lpa','Current CTC (LPA)',l)}
-      ${fcell('shortlisted_for','Shortlisted for',l)}
+      ${fcell('process_type','Process Type',l)}${fcell('shortlisted_for','Shortlisted for',l)}
     </div>
 
     <div class="card">
@@ -1936,7 +1940,7 @@ function renderRecruiterLeads(name) {
 
   // Reset filters
   F={q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],
-     call_outcomes:[],eng_levels:[],naukri_titles:[],
+     call_outcomes:[],eng_levels:[],naukri_titles:[],process_types:[],
      ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
 
   const showOwner = false; // hide owner filter — this is a single recruiter view
