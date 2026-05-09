@@ -393,6 +393,176 @@ function doLogout(){
 // ════════════════════════════════════════════════════
 // COUNTS — fast because Supabase counts with SQL
 // ════════════════════════════════════════════════════
+// ── ADD LEAD MANUALLY ────────────────────────────────────────────
+function renderAddLead() {
+  document.getElementById('pg-title').textContent = 'Add Lead';
+  document.getElementById('tba').innerHTML = '';
+  document.getElementById('asgbar').classList.remove('on');
+
+  const SOURCES = ['Naukri','Google Form','LinkedIn','WhatsApp','Referral','Other'];
+  const STD_ROLES = [
+    'Team Lead – Sales / Operations','Senior Manager / AVP / Director',
+    'Assistant Manager / Manager','Outbound / Inbound Sales Executive',
+    'Customer Support Executive','Quality Analyst',
+    'Trainer / Training Manager','HR / Talent Acquisition','IT / Software','Unmapped'
+  ];
+
+  document.getElementById('content').innerHTML = `
+  <div style="max-width:720px">
+  <div class="card">
+    <div class="ch"><div class="ch-t">New Lead Details</div></div>
+    <div class="ff">
+
+      <div class="sec-lbl" style="margin-bottom:8px">Identity</div>
+      <div class="fr2">
+        <div class="fr"><label class="fl">Full Name *</label>
+          <input type="text" class="fi-full" id="al-name" placeholder="e.g. Rahul Sharma"></div>
+        <div class="fr"><label class="fl">Mobile Number *</label>
+          <input type="text" class="fi-full" id="al-phone" placeholder="10-digit number" maxlength="15"></div>
+      </div>
+      <div class="fr2">
+        <div class="fr"><label class="fl">Email</label>
+          <input type="email" class="fi-full" id="al-email" placeholder="candidate@email.com"></div>
+        <div class="fr"><label class="fl">Gender</label>
+          <select class="fi-full" id="al-gender">
+            <option value="">— select —</option>
+            <option>Male</option><option>Female</option><option>Prefer not to say</option>
+          </select></div>
+      </div>
+      <div class="fr2">
+        <div class="fr"><label class="fl">Current City</label>
+          <input type="text" class="fi-full" id="al-city" placeholder="e.g. Mumbai"></div>
+        <div class="fr"><label class="fl">State</label>
+          <input type="text" class="fi-full" id="al-state" placeholder="e.g. Maharashtra"></div>
+      </div>
+
+      <div class="sec-lbl" style="margin-top:12px;margin-bottom:8px">Professional</div>
+      <div class="fr2">
+        <div class="fr"><label class="fl">Current Company</label>
+          <input type="text" class="fi-full" id="al-company" placeholder="Company name"></div>
+        <div class="fr"><label class="fl">Current Designation</label>
+          <input type="text" class="fi-full" id="al-designation" placeholder="Job title"></div>
+      </div>
+      <div class="fr2">
+        <div class="fr"><label class="fl">Standard Role</label>
+          <select class="fi-full" id="al-role">
+            <option value="">— select —</option>
+            ${STD_ROLES.map(r=>`<option>${r}</option>`).join('')}
+          </select></div>
+        <div class="fr"><label class="fl">Industry</label>
+          <input type="text" class="fi-full" id="al-industry" placeholder="e.g. BPO / KPO"></div>
+      </div>
+      <div class="fr2">
+        <div class="fr"><label class="fl">Department</label>
+          <input type="text" class="fi-full" id="al-dept" placeholder="e.g. Operations"></div>
+        <div class="fr"><label class="fl">Process Type</label>
+          <select class="fi-full" id="al-process">
+            <option value="">— select —</option>
+            <option>Domestic</option><option>International</option>
+          </select></div>
+      </div>
+      <div class="fr2">
+        <div class="fr"><label class="fl">Experience (years)</label>
+          <input type="number" class="fi-full" id="al-exp" placeholder="e.g. 4.5" step="0.5" min="0"></div>
+        <div class="fr"><label class="fl">Current CTC (LPA)</label>
+          <input type="number" class="fi-full" id="al-ctc" placeholder="e.g. 5.5" step="0.5" min="0"></div>
+      </div>
+
+      <div class="sec-lbl" style="margin-top:12px;margin-bottom:8px">Source</div>
+      <div class="fr2">
+        <div class="fr"><label class="fl">Source Channel</label>
+          <select class="fi-full" id="al-source">
+            ${SOURCES.map(s=>`<option>${s}</option>`).join('')}
+          </select></div>
+        <div class="fr"><label class="fl">Date Applied</label>
+          <input type="date" class="fi-full" id="al-date" value="${new Date().toISOString().slice(0,10)}"></div>
+      </div>
+
+      <div id="al-err" style="color:#ef4444;font-size:13px;margin-top:6px;display:none"></div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button class="btn pri" id="al-save-btn" onclick="saveNewLead()">Save Lead</button>
+        <button class="btn" onclick="goBack()">Cancel</button>
+      </div>
+    </div>
+  </div>
+  </div>`;
+}
+
+async function saveNewLead() {
+  const btn = document.getElementById('al-save-btn');
+  const err = document.getElementById('al-err');
+  err.style.display = 'none';
+
+  // Validate
+  const name  = document.getElementById('al-name').value.trim();
+  const rawPh = document.getElementById('al-phone').value.trim().replace(/\D/g,'');
+  const phone = rawPh.startsWith('91') && rawPh.length===12 ? rawPh.slice(2) : rawPh;
+
+  if(!name) {
+    err.textContent='Full name is required.'; err.style.display='block'; return;
+  }
+  if(phone.length!==10 || !'6789'.includes(phone[0])) {
+    err.textContent='Please enter a valid 10-digit mobile number.'; err.style.display='block'; return;
+  }
+
+  btn.disabled=true; btn.textContent='Checking…';
+
+  // Check duplicate phone
+  const dup = await SB.select('leads',{filters:[`phone_primary=eq.${phone}`],limit:1});
+  if(dup.data && dup.data.length > 0) {
+    err.textContent=`This phone already exists — ${dup.data[0].full_name} (${dup.data[0].lead_id})`;
+    err.style.display='block'; btn.disabled=false; btn.textContent='Save Lead'; return;
+  }
+
+  // Get next lead ID
+  btn.textContent='Saving…';
+  const maxRes = await fetch(
+    `${SB_URL}/rest/v1/leads?select=lead_id&order=lead_id.desc&limit=1`,
+    {headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}}
+  );
+  const maxData = await maxRes.json();
+  const maxId = (maxData&&maxData[0]&&maxData[0].lead_id)
+    ? parseInt(maxData[0].lead_id.replace('L-',''))||0 : 0;
+  const newId = `L-${String(maxId+1).padStart(5,'0')}`;
+  const today = new Date().toISOString().slice(0,10);
+
+  const lead = {
+    lead_id:             newId,
+    full_name:           name.split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' '),
+    phone_primary:       phone,
+    email:               document.getElementById('al-email').value.trim().toLowerCase()||'',
+    gender:              document.getElementById('al-gender').value||'',
+    current_city:        document.getElementById('al-city').value.trim()||'',
+    state:               document.getElementById('al-state').value.trim()||'',
+    current_company:     document.getElementById('al-company').value.trim()||'',
+    current_designation: document.getElementById('al-designation').value.trim()||'',
+    standard_role:       document.getElementById('al-role').value||'',
+    industry:            document.getElementById('al-industry').value.trim()||'',
+    department:          document.getElementById('al-dept').value.trim()||'',
+    process_type:        document.getElementById('al-process').value||'',
+    experience_yrs:      parseFloat(document.getElementById('al-exp').value)||null,
+    current_ctc_lpa:     parseFloat(document.getElementById('al-ctc').value)||null,
+    source_channel:      document.getElementById('al-source').value||'Other',
+    date_applied:        document.getElementById('al-date').value||today,
+    status:              'New',
+    owner:               SESSION.name,
+    create_date:         today,
+  };
+
+  const res = await SB.insert('leads', [lead]);
+  if(res.ok) {
+    toast('Lead added — '+lead.full_name+' ('+newId+') ✓');
+    await loadCounts();
+    navRender();
+    LEADS=[lead]; activeLead=newId;
+    prevPage=appRole==='recruiter'?'my-leads':'all';
+    page='detail'; render();
+  } else {
+    err.textContent='Error saving: '+(res.body?(res.body.message||res.body.code||''):'unknown error');
+    err.style.display='block'; btn.disabled=false; btn.textContent='Save Lead';
+  }
+}
+
 async function loadCounts() {
   const base = [
     SB.count('leads'),
@@ -416,7 +586,7 @@ async function loadCounts() {
 async function loadRecruiters() {
   const res = await SB.select('users', {
     select: 'name',
-    filters: [],
+    filters: ['role=eq.recruiter'],
     limit: 50
   });
   if(res.ok) {
@@ -1482,6 +1652,7 @@ function navRender(){
       {id:'dashboard', lbl:'Dashboard',    ico:'⊞'},
       {id:'all',       lbl:'All leads',    ico:'≡', badge:(COUNTS.total||0).toLocaleString(), bc:'nb-b'},
       {id:'assign',    lbl:'Assign leads', ico:'◎', badge:(COUNTS.unassigned||0).toLocaleString(), bc:'nb-r'},
+      {id:'add-lead',  lbl:'Add lead',     ico:'+'},
     ].forEach(it=>{
       const d=document.createElement('div');
       d.className='ni'+(page===it.id&&!_activeRecruiter?' on':'');
@@ -1519,6 +1690,7 @@ function navRender(){
       {sec:'my work', items:[
         {id:'my-leads',      lbl:'My leads',           ico:'≡', badge:(COUNTS.myLeads||0).toLocaleString(), bc:'nb-g'},
         {id:'followups',     lbl:'Follow-ups today',   ico:'◷'},
+        {id:'add-lead',      lbl:'Add lead',           ico:'+'},
       ]},
 
     ].forEach(sec=>{
@@ -1950,6 +2122,7 @@ function render(){
   else if(page==='rec-view')    viewRecruiterDashboard(_activeRecruiter||'');
   else if(page==='rec-leads')   renderRecruiterLeads(_activeRecruiter||'');
   else if(page==='rec-dashboard') renderRecruiterDashboard();
+  else if(page==='add-lead')      renderAddLead();
 }
 
 // ════════════════════════════════════════════════════
