@@ -215,6 +215,7 @@ textarea.fi-full{resize:vertical;min-height:64px}
 // ════════════════════════════════════════════════════
 const SB_URL = 'https://esgyriktdmlqnestbysl.supabase.co';       // e.g. https://xxxx.supabase.co
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZ3lyaWt0ZG1scW5lc3RieXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODAxODksImV4cCI6MjA5Mjk1NjE4OX0.BP8wrpjLhTNuUfmzWIiklaOVeV9Fzm97Xo2gW9vmrT8';  // long string from Settings → API
+
 // ════════════════════════════════════════════════════
 // SUPABASE API WRAPPER
 // Direct REST calls — no SDK needed
@@ -2137,7 +2138,7 @@ function render(){
   // Only reset filters when navigating to a new page (not when restoring from detail)
   if(page !== prevPage || page === 'dashboard' || page === 'rec-dashboard') {
     F={q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],
-       call_outcomes:[],eng_levels:[],naukri_titles:[],
+       call_outcomes:[],eng_levels:[],naukri_titles:[],process_types:[],
        ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
   }
 
