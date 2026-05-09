@@ -450,11 +450,37 @@ function renderAddLead() {
             ${STD_ROLES.map(r=>`<option>${r}</option>`).join('')}
           </select></div>
         <div class="fr"><label class="fl">Industry</label>
-          <input type="text" class="fi-full" id="al-industry" placeholder="e.g. BPO / KPO"></div>
+          <select class="fi-full" id="al-industry">
+            <option value="">— select —</option>
+            <option>BPO / KPO / Call Centers</option>
+            <option>IT / Software - Hardware - Tech</option>
+            <option>Banking</option>
+            <option>BFSI</option>
+            <option>Manufacturing</option>
+            <option>Retail</option>
+            <option>Travel</option>
+            <option>Hotels</option>
+            <option>FMCG</option>
+            <option>Digital Marketing</option>
+            <option>Others</option>
+          </select></div>
       </div>
       <div class="fr2">
         <div class="fr"><label class="fl">Department</label>
-          <input type="text" class="fi-full" id="al-dept" placeholder="e.g. Operations"></div>
+          <select class="fi-full" id="al-dept">
+            <option value="">— select —</option>
+            <option>Operations</option>
+            <option>Quality</option>
+            <option>Training</option>
+            <option>Human Resources / Talent Acquisition</option>
+            <option>Business Development / Sales / Marketing / Inside Sales</option>
+            <option>WFM-MIS - Data Analytics</option>
+            <option>Finance</option>
+            <option>Digital Marketing</option>
+            <option>Social Media - Content Creation / Influencer / Marketing / Video Editing</option>
+            <option>Fresher / Intern</option>
+            <option>Others</option>
+          </select></div>
         <div class="fr"><label class="fl">Process Type</label>
           <select class="fi-full" id="al-process">
             <option value="">— select —</option>
