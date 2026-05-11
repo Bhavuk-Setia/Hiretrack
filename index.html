@@ -1487,21 +1487,11 @@ async function saveCall(lid){
     });
   }
 
-  // 2. Check call_log insert succeeded before updating lead
-  if(!logRes.ok) {
-    console.error('Call log insert failed:', logRes.status, logRes.body);
-    toast('Error saving call log (status: '+logRes.status+')', true);
-    if(btn){btn.disabled=false;btn.textContent='Save call log';}
-    return;
-  }
-
-  // 3. Update lead — ensure status is valid before sending
-  const validStatuses = ['New','Rejected','Interested','Shortlisted',
-    'Submitted to Client','Placed','Not Interested','On Hold'];
-  const safeStatus = validStatuses.includes(newStatus) ? newStatus : 'New';
-
-  const leadRes = await SB.update('leads',{
-    status:              safeStatus,
+  // 2. Update lead — status, shortlisted_for, followup_date
+  //    AND store last call outcome + date directly on lead
+  //    so it shows in the table without opening call history
+  await SB.update('leads',{
+    status:              newStatus,
     shortlisted_for:     shortlisted,
     followup_date:       followupDate,
     last_call_outcome:   callOutcome,
@@ -1510,21 +1500,22 @@ async function saveCall(lid){
     english_proficiency: englishProf
   },[`lead_id=eq.${lid}`]);
 
-  if(!leadRes.ok) {
-    console.error('Lead update failed:', leadRes.status, leadRes.body);
-    toast('Call logged but lead update failed ('+leadRes.status+')', true);
-    if(btn){btn.disabled=false;btn.textContent='Save call log';}
-    return;
-  }
-
-  // 4. Update local state
-  l.status             = safeStatus;
+  // 3. Update local state so UI reflects immediately without re-fetch
+  l.status             = newStatus;
   l.shortlisted_for    = shortlisted;
   l.followup_date      = followupDate;
   l.last_call_outcome  = callOutcome;
   l.last_call_date     = today;
   l.last_call_notes    = notes;
   l.english_proficiency= englishProf;
+
+  // Check if log insert succeeded
+  if(!logRes.ok) {
+    console.error('Call log insert failed:', logRes.status, logRes.body);
+    toast('Error saving call log (status: '+logRes.status+')', true);
+    if(btn){btn.disabled=false;btn.textContent='Save call log';}
+    return;
+  }
 
   toast('Call logged ✓');
   if(btn){btn.disabled=false;btn.textContent='Save call log';}
@@ -1652,7 +1643,7 @@ async function renderDetail(){
             </select></div>
           <div class="fr"><label class="fl">Status</label>
             <select class="fi-full" id="fo-st">
-              ${STATUSES.map(s=>`<option${(l.status===s||(!STATUSES.includes(l.status)&&s==='New'))?' selected':''}>${s}</option>`).join('')}
+              ${STATUSES.map(s=>`<option${l.status===s?' selected':''}>${s}</option>`).join('')}
             </select></div>
         </div>
         <div class="fr"><label class="fl">English proficiency</label>
