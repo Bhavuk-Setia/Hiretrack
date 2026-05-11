@@ -399,7 +399,7 @@ function renderAddLead() {
   document.getElementById('tba').innerHTML = '';
   document.getElementById('asgbar').classList.remove('on');
 
-  const SOURCES = ['Naukri','Naukri (Self)','Google Form','LinkedIn','WhatsApp','Referral','Other'];
+  const SOURCES = ['Naukri','Google Form','LinkedIn','WhatsApp','Referral','Other'];
   const STD_ROLES = [
     'Team Lead – Sales / Operations','Senior Manager / AVP / Director',
     'Assistant Manager / Manager','Outbound / Inbound Sales Executive',
@@ -956,7 +956,7 @@ async function loadFilterOptions() {
   _msOpts.cities        = uniq(cities,  'current_city');
   _msOpts.industries    = uniq(inds,    'industry');
   _msOpts.depts         = uniq(depts,   'department');
-  _msOpts.sources       = uniq(sources, 'source_channel');
+  _msOpts.sources       = ['Naukri','Naukri (Self)','Google Form','LinkedIn','WhatsApp','Referral','Other'];
   _msOpts.naukri_titles = uniq(naukri,  'naukri_job_title');
 }
 
