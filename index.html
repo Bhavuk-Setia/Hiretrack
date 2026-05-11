@@ -1643,7 +1643,7 @@ async function renderDetail(){
             </select></div>
           <div class="fr"><label class="fl">Status</label>
             <select class="fi-full" id="fo-st">
-              ${STATUSES.map(s=>`<option${l.status===s?' selected':''}>${s}</option>`).join('')}
+              ${STATUSES.map(s=>`<option${(l.status===s||(!STATUSES.includes(l.status)&&s==='New'))?' selected':''}>${s}</option>`).join('')}
             </select></div>
         </div>
         <div class="fr"><label class="fl">English proficiency</label>
