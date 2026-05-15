@@ -574,6 +574,7 @@ async function saveNewLead() {
     experience_yrs:      parseFloat(document.getElementById('al-exp').value)||null,
     current_ctc_lpa:     parseFloat(document.getElementById('al-ctc').value)||null,
     source_channel:      document.getElementById('al-source').value||'Other',
+    shortlisted_for:     document.getElementById('al-shortlisted').value.trim()||'',
     date_applied:        document.getElementById('al-date').value||today,
     status:              'New',
     owner:               SESSION.name,
