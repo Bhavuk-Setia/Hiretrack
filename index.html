@@ -1680,9 +1680,9 @@ async function renderDetail(){
           <input type="date" class="fi-full" id="fo-date"
             value="${l.followup_date||''}"></div>
         <div class="fr"><label class="fl">Shortlisted for</label>
-          <select class="fi-full" id="fo-client">
+          <select class="fiselect class="fi-full" id="fo-client">
             <option value="">— select client —</option>
-            ${['1point1', 'Advaith Hyundai', 'Bailey', 'Citykart', 'Cogent', 'Concentrix', 'Etraveli', 'Five S digital', 'Gandalf', 'Globiva', 'Hexaware', 'IEnergizer', 'IGT', 'Immergix', 'Just Wines', 'Kim.cc', 'Kusvaa', 'Mirada', 'Netscribes', 'O-Cube', 'P&M', 'Regalix', 'Sagility', 'Startek', 'Stefto', 'Strings Marketing', 'Synergetic Shipping', 'TaskUs', 'TDCX', 'TLC', 'Transcom', 'Vee Kay Aquatech'].map(c=>`<option value="${c}"${(l.shortlisted_for||''===c)||l.shortlisted_for===c?' selected':''}>${c}</option>`).join('')}
+            ${CLIENTS.map(c=>`<option value="${c}"${l.shortlisted_for===c?' selected':''}>${c}</option>`).join('')}
           </select></div>
         <button class="btn pri" id="call-save-btn" style="width:100%"
           onclick="saveCall('${l.lead_id}')">Save call log</button>
