@@ -333,7 +333,8 @@ let F = {
   q:'', roles:[], statuses:[], cities:[], industries:[],
   depts:[], sources:[], owners:[],
   call_outcomes:[], eng_levels:[], naukri_titles:[], process_types:[],
-  clients:[], shortlisted_q:'',
+  genders:[], clients:[],
+  current_role_q:'',
   ctc_op:'between', ctc_a:'', ctc_b:'',
   exp_op:'between', exp_a:'', exp_b:''
 };
@@ -704,10 +705,12 @@ function buildFilters() {
   if(naukriF)  filters.push(naukriF);
   const procF   = makeFilter('process_type', F.process_types);
   if(procF)    filters.push(procF);
+  const genderF = makeFilter('gender', F.genders);
+  if(genderF)  filters.push(genderF);
   const clientF = makeFilter('shortlisted_for', F.clients);
   if(clientF)  filters.push(clientF);
-  if(F.shortlisted_q && F.shortlisted_q.trim())
-    filters.push(`shortlisted_for=ilike.*${encodeURIComponent(F.shortlisted_q.trim())}*`);
+  if(F.current_role_q && F.current_role_q.trim())
+    filters.push(`current_designation=ilike.*${encodeURIComponent(F.current_role_q.trim())}*`);
   if(F.owners.length) {
     if(F.owners.length === 1) {
       filters.push(F.owners[0]==='Unassigned'
@@ -797,12 +800,12 @@ function renderLeadsPage(title, assignMode=false) {
       <input class="fi fi-search" id="main-search" placeholder="Search name, phone, city…"
         value="${F.q}" autocomplete="off"
         oninput="F.q=this.value;debounce(()=>loadLeads(0))">
-      <input class="fi" id="shortlisted-search" placeholder="Shortlisted for…"
-        value="${F.shortlisted_q||''}" autocomplete="off" style="width:160px"
-        oninput="F.shortlisted_q=this.value;debounce(()=>loadLeads(0))">
+      <input class="fi" id="current-role-search" placeholder="Current role…"
+        value="${F.current_role_q||''}" autocomplete="off" style="width:140px"
+        oninput="F.current_role_q=this.value;debounce(()=>loadLeads(0))">
       ${msHTML('roles')}${msHTML('naukri_titles')}${msHTML('statuses')}${msHTML('cities')}
       ${msHTML('industries')}${msHTML('depts')}${msHTML('sources')}
-      ${msHTML('call_outcomes')}${msHTML('eng_levels')}${msHTML('process_types')}${msHTML('clients')}
+      ${msHTML('call_outcomes')}${msHTML('eng_levels')}${msHTML('process_types')}${msHTML('genders')}${msHTML('clients')}
       ${showOwner?msHTML('owners'):''}
     </div>
     <div class="fbar-r">
@@ -923,7 +926,7 @@ async function reloadLeads() {
 
 function resetF(){
   F={q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],
-     call_outcomes:[],eng_levels:[],naukri_titles:[],process_types:[],clients:[],shortlisted_q:'',
+     call_outcomes:[],eng_levels:[],naukri_titles:[],process_types:[],clients:[],
      ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
   renderLeadsPage(_pgTitle,_pgAssign);
 }
@@ -935,7 +938,7 @@ function resetF(){
 const MS_LABELS={roles:'Standard Role',statuses:'Status',cities:'City',
   industries:'Industry',depts:'Department',sources:'Source',owners:'Owner',
   call_outcomes:'Call Outcome',eng_levels:'English',naukri_titles:'Naukri Title',
-  process_types:'Process',clients:'Shortlisted For'};
+  process_types:'Process',genders:'Gender',clients:'Shortlisted For'};
 const CALL_OUTCOMES = ['Not Called','Connected','Not Reachable',
   "Didn't Respond",'Callback Requested','Wrong Number'];
 const ENG_LEVELS = ['Poor','Average','Good'];
@@ -947,6 +950,7 @@ const MS_STATIC={
   call_outcomes: CALL_OUTCOMES,
   eng_levels:    ENG_LEVELS,
   process_types: ['Domestic','International'],
+  genders:       ['Male','Female','Prefer not to say'],
   clients:       CLIENTS,
   owners:        ['Unassigned']
 };
@@ -956,7 +960,7 @@ function getArr(id){
     industries:F.industries,depts:F.depts,sources:F.sources,owners:F.owners,
     call_outcomes:F.call_outcomes,eng_levels:F.eng_levels,
     naukri_titles:F.naukri_titles,process_types:F.process_types,
-    clients:F.clients}[id]||[];
+    genders:F.genders,clients:F.clients}[id]||[];
 }
 
 // For dropdowns that need dynamic options, we pre-load from DB once
@@ -1680,9 +1684,9 @@ async function renderDetail(){
           <input type="date" class="fi-full" id="fo-date"
             value="${l.followup_date||''}"></div>
         <div class="fr"><label class="fl">Shortlisted for</label>
-          <select class="fiselect class="fi-full" id="fo-client">
+          <select class="fi-full" id="fo-client">
             <option value="">— select client —</option>
-            ${CLIENTS.map(c=>`<option value="${c}"${l.shortlisted_for===c?' selected':''}>${c}</option>`).join('')}
+            ${['1point1', 'Advaith Hyundai', 'Bailey', 'Citykart', 'Cogent', 'Concentrix', 'Etraveli', 'Five S digital', 'Gandalf', 'Globiva', 'Hexaware', 'IEnergizer', 'IGT', 'Immergix', 'Just Wines', 'Kim.cc', 'Kusvaa', 'Mirada', 'Netscribes', 'O-Cube', 'P&M', 'Regalix', 'Sagility', 'Startek', 'Stefto', 'Strings Marketing', 'Synergetic Shipping', 'TaskUs', 'TDCX', 'TLC', 'Transcom', 'Vee Kay Aquatech'].map(c=>`<option value="${c}"${(l.shortlisted_for||''===c)||l.shortlisted_for===c?' selected':''}>${c}</option>`).join('')}
           </select></div>
         <button class="btn pri" id="call-save-btn" style="width:100%"
           onclick="saveCall('${l.lead_id}')">Save call log</button>
@@ -1963,7 +1967,7 @@ function renderRecruiterLeads(name) {
 
   // Reset filters
   F={q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],
-     call_outcomes:[],eng_levels:[],naukri_titles:[],process_types:[],clients:[],shortlisted_q:'',
+     call_outcomes:[],eng_levels:[],naukri_titles:[],process_types:[],clients:[],
      ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
 
   const showOwner = false; // hide owner filter — this is a single recruiter view
@@ -1977,9 +1981,9 @@ function renderRecruiterLeads(name) {
       <input class="fi fi-search" id="main-search" placeholder="Search name, phone, city…"
         value="${F.q}" autocomplete="off"
         oninput="F.q=this.value;debounce(()=>loadLeads(0))">
-      <input class="fi" id="shortlisted-search" placeholder="Shortlisted for…"
-        value="${F.shortlisted_q||''}" autocomplete="off" style="width:160px"
-        oninput="F.shortlisted_q=this.value;debounce(()=>loadLeads(0))">
+      <input class="fi" id="current-role-search" placeholder="Current role…"
+        value="${F.current_role_q||''}" autocomplete="off" style="width:140px"
+        oninput="F.current_role_q=this.value;debounce(()=>loadLeads(0))">
       ${msHTML('roles')}${msHTML('naukri_titles')}${msHTML('statuses')}${msHTML('cities')}
       ${msHTML('industries')}${msHTML('depts')}${msHTML('sources')}
       ${msHTML('call_outcomes')}${msHTML('eng_levels')}
@@ -2164,7 +2168,7 @@ function render(){
   // Only reset filters when navigating to a new page (not when restoring from detail)
   if(page !== prevPage || page === 'dashboard' || page === 'rec-dashboard') {
     F={q:'',roles:[],statuses:[],cities:[],industries:[],depts:[],sources:[],owners:[],
-       call_outcomes:[],eng_levels:[],naukri_titles:[],process_types:[],clients:[],shortlisted_q:'',
+       call_outcomes:[],eng_levels:[],naukri_titles:[],process_types:[],clients:[],
        ctc_op:'between',ctc_a:'',ctc_b:'',exp_op:'between',exp_a:'',exp_b:''};
   }
 
