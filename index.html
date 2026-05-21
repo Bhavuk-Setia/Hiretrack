@@ -553,13 +553,11 @@ async function saveNewLead() {
   // Get next lead ID
   btn.textContent='Saving…';
   const maxRes = await fetch(
-    `${SB_URL}/rest/v1/leads?select=lead_id&order=cast(replace(lead_id,'L-','') as int).desc&limit=1`,
-    {headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}}
+    `${SB_URL}/rest/v1/rpc/get_max_lead_id`,
+    {method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},body:'{}'}
   );
-  const maxData = await maxRes.json();
-  const maxId = (maxData&&maxData[0]&&maxData[0].lead_id)
-    ? parseInt(maxData[0].lead_id.replace('L-',''))||0 : 0;
-  const newId = `L-${String(maxId+1).padStart(5,'0')}`;
+  const maxId = (await maxRes.json())||0;
+  let newId = `L-${String(maxId+1).padStart(5,'0')}`;
   const today = new Date().toISOString().slice(0,10);
 
   const lead = {
