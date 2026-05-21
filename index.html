@@ -553,7 +553,7 @@ async function saveNewLead() {
   // Get next lead ID
   btn.textContent='Saving…';
   const maxRes = await fetch(
-    `${SB_URL}/rest/v1/leads?select=lead_id&order=lead_id.desc&limit=1`,
+    `${SB_URL}/rest/v1/leads?select=lead_id&order=cast(replace(lead_id,'L-','') as int).desc&limit=1`,
     {headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}}
   );
   const maxData = await maxRes.json();
