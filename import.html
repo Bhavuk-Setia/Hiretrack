@@ -619,9 +619,14 @@ const ROLE_MAP = {
 
 function cleanPhone(v) {
   if(!v && v!==0) return null;
-  let s = String(v).replace(/\D/g,'');
-  if(s.startsWith('91') && s.length===12) s = s.slice(2);
-  return (s.length===10 && '6789'.includes(s[0])) ? s : null;
+  // Split on comma or whitespace to handle multiple numbers in one cell
+  const parts = String(v).split(/[,\s]+/).filter(Boolean);
+  for(const part of parts) {
+    let s = part.replace(/\D/g,'');
+    if(s.startsWith('91') && s.length===12) s = s.slice(2);
+    if(s.length===10 && '6789'.includes(s[0])) return s;
+  }
+  return null;
 }
 function cleanName(v) {
   if(!v) return '';
