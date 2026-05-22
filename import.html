@@ -403,7 +403,9 @@ const SB = {
       },
       body: JSON.stringify(Array.isArray(rows)?rows:[rows])
     });
-    return {ok: r.ok, status: r.status};
+    let body = null;
+    try { body = await r.json(); } catch(e) {}
+    return {ok: r.ok, status: r.status, body};
   },
   async update(table, data, filters=[]) {
     let url = `${SB_URL}/rest/v1/${table}?`;
@@ -1167,8 +1169,8 @@ function resetTool() {
             ondragleave="this.classList.remove('drag-over')"
             ondrop="event.preventDefault();this.classList.remove('drag-over');handleDrop(event)">
             <div class="dz-icon">📂</div>
-            <div class="dz-title">Drop your Naukri Excel here</div>
-            <div class="dz-sub">or click to browse · .xlsx or .xls files only</div>
+            <div class="dz-title" id="dz-title">Drop your Naukri Excel here</div>
+            <div class="dz-sub" id="dz-sub">or click to browse · .xlsx or .xls files only</div>
             <div class="dz-file" id="dz-filename"></div>
           </div>
         </label>
