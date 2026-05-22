@@ -185,8 +185,8 @@ input[type=file]{display:none}
         <div class="drop-zone" id="drop-zone"
           ondragover="dzDragOver(event)" ondragleave="dzDragLeave()" ondrop="dzDrop(event)">
           <div class="dz-icon">📂</div>
-          <div class="dz-title">Drop your Naukri Excel here</div>
-          <div class="dz-sub">or click to browse · .xlsx or .xls files only</div>
+          <div class="dz-title" id="dz-title">Drop your Naukri Excel here</div>
+          <div class="dz-sub" id="dz-sub">or click to browse · .xlsx or .xls files only</div>
           <div class="dz-file" id="dz-filename"></div>
         </div>
         <input type="file" id="file-input" accept=".xlsx,.xls">
@@ -781,15 +781,23 @@ async function processFile() {
     // Find max ID
     let maxId = totalCount; // approximate — we'll fix below
     // Fetch actual max
-    const maxRes2 = await fetch(
-      `${SB_URL}/rest/v1/leads?select=lead_id&order=lead_id.desc&limit=1`,
-      {headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}}
-    );
-    const maxData = await maxRes2.json();
-    if(maxData && maxData[0] && maxData[0].lead_id) {
-      maxId = parseInt(maxData[0].lead_id.replace('L-',''))||0;
-    } else {
-      maxId = 0; // table is empty — start from L-00001
+    // Fetch all lead_ids and find the true numeric max (avoids alphabetical sort bug)
+    let allIdsOffset = 0;
+    while(true) {
+      const idRes = await fetch(
+        `${SB_URL}/rest/v1/leads?select=lead_id&limit=5000&offset=${allIdsOffset}`,
+        {headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}}
+      );
+      const idData = await idRes.json();
+      if(!idData || !idData.length) break;
+      idData.forEach(row => {
+        if(row.lead_id) {
+          const num = parseInt(String(row.lead_id).replace(/^L-0*/,''))||0;
+          if(num > maxId) maxId = num;
+        }
+      });
+      allIdsOffset += 5000;
+      if(idData.length < 5000) break;
     }
 
     // 5. Classify each cleaned record
