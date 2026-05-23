@@ -550,13 +550,35 @@ async function saveNewLead() {
     err.style.display='block'; btn.disabled=false; btn.textContent='Save Lead'; return;
   }
 
-  // Get next lead ID
+  // Get next lead ID — fetch all IDs and find true numeric max (avoids alphabetical sort bug)
   btn.textContent='Saving…';
-  const maxRes = await fetch(
-    `${SB_URL}/rest/v1/rpc/get_max_lead_id`,
-    {method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},body:'{}'}
-  );
-  const maxId = (await maxRes.json())||0;
+  let maxId = 0;
+  try {
+    const maxRes = await fetch(
+      `${SB_URL}/rest/v1/rpc/get_max_lead_id`,
+      {method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},body:'{}'}
+    );
+    if (maxRes.ok) {
+      maxId = (await maxRes.json()) || 0;
+    } else {
+      // Fallback: fetch all lead_ids and find numeric max
+      let offset = 0; let done = false;
+      while (!done) {
+        const r = await fetch(`${SB_URL}/rest/v1/leads?select=lead_id&limit=5000&offset=${offset}`,
+          {headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+        const rows = await r.json();
+        if (!rows || !rows.length) break;
+        rows.forEach(row => {
+          if (row.lead_id) {
+            const n = parseInt(String(row.lead_id).replace(/^L-0*/, '')) || 0;
+            if (n > maxId) maxId = n;
+          }
+        });
+        offset += 5000;
+        if (rows.length < 5000) done = true;
+      }
+    }
+  } catch(e) { maxId = 0; }
   let newId = `L-${String(maxId+1).padStart(5,'0')}`;
   const today = new Date().toISOString().slice(0,10);
 
