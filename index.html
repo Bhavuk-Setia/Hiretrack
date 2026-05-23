@@ -420,7 +420,8 @@ function renderAddLead() {
         <div class="fr"><label class="fl">Full Name *</label>
           <input type="text" class="fi-full" id="al-name" placeholder="e.g. Rahul Sharma"></div>
         <div class="fr"><label class="fl">Mobile Number *</label>
-          <input type="text" class="fi-full" id="al-phone" placeholder="10-digit number" maxlength="15"></div>
+          <input type="text" class="fi-full" id="al-phone" placeholder="10-digit number" maxlength="15" onblur="checkPhoneLive()">
+          <span id="al-phone-hint" style="font-size:11px;margin-top:3px;display:none"></span></div>
       </div>
       <div class="fr2">
         <div class="fr"><label class="fl">Email</label>
@@ -522,6 +523,37 @@ function renderAddLead() {
     </div>
   </div>
   </div>`;
+}
+
+// Real-time phone duplicate check — fires when user leaves the phone field
+async function checkPhoneLive() {
+  const hint  = document.getElementById('al-phone-hint');
+  const input = document.getElementById('al-phone');
+  const raw   = input.value.trim().replace(/\D/g, '');
+  let phone   = raw;
+  if (phone.startsWith('91') && phone.length === 12) phone = phone.slice(2);
+
+  hint.style.display = 'none';
+  hint.textContent   = '';
+  input.style.borderColor = '';
+
+  if (phone.length !== 10) return; // not a complete number yet
+
+  hint.textContent = 'Checking…';
+  hint.style.color = '#94a3b8';
+  hint.style.display = 'block';
+
+  const res = await SB.select('leads', { filters: [`phone_primary=eq.${phone}`], limit: 1 });
+  if (res.data && res.data.length > 0) {
+    const d = res.data[0];
+    hint.textContent = `⚠ Already exists — ${d.full_name} (${d.lead_id})`;
+    hint.style.color = '#e53e3e';
+    input.style.borderColor = '#e53e3e';
+  } else {
+    hint.textContent = '✓ Phone is available';
+    hint.style.color = '#38a169';
+    input.style.borderColor = '#38a169';
+  }
 }
 
 async function saveNewLead() {
