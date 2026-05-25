@@ -582,37 +582,40 @@ async function saveNewLead() {
     err.style.display='block'; btn.disabled=false; btn.textContent='Save Lead'; return;
   }
 
-  // Get next lead ID — fetch all IDs and find true numeric max (avoids alphabetical sort bug)
+  // Get next lead ID — uses RPC with fallback, then retries on 409 (race condition proof)
   btn.textContent='Saving…';
-  let maxId = 0;
-  try {
-    const maxRes = await fetch(
-      `${SB_URL}/rest/v1/rpc/get_max_lead_id`,
-      {method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},body:'{}'}
-    );
-    if (maxRes.ok) {
-      maxId = (await maxRes.json()) || 0;
-    } else {
-      // Fallback: fetch all lead_ids and find numeric max
-      let offset = 0; let done = false;
-      while (!done) {
-        const r = await fetch(`${SB_URL}/rest/v1/leads?select=lead_id&limit=5000&offset=${offset}`,
-          {headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
-        const rows = await r.json();
-        if (!rows || !rows.length) break;
-        rows.forEach(row => {
-          if (row.lead_id) {
-            const n = parseInt(String(row.lead_id).replace(/^L-0*/, '')) || 0;
-            if (n > maxId) maxId = n;
-          }
-        });
-        offset += 5000;
-        if (rows.length < 5000) done = true;
-      }
-    }
-  } catch(e) { maxId = 0; }
-  let newId = `L-${String(maxId+1).padStart(5,'0')}`;
   const today = new Date().toISOString().slice(0,10);
+
+  async function getMaxId() {
+    // Try RPC first
+    try {
+      const maxRes = await fetch(
+        `${SB_URL}/rest/v1/rpc/get_max_lead_id`,
+        {method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},body:'{}'}
+      );
+      if (maxRes.ok) { const v = await maxRes.json(); return v || 0; }
+    } catch(e) {}
+    // Fallback: scan all lead_ids numerically
+    let maxId = 0, offset = 0;
+    while (true) {
+      const r = await fetch(`${SB_URL}/rest/v1/leads?select=lead_id&limit=5000&offset=${offset}`,
+        {headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+      const rows = await r.json();
+      if (!rows || !rows.length) break;
+      rows.forEach(row => {
+        if (row.lead_id) {
+          const n = parseInt(String(row.lead_id).replace(/^L-0*/, '')) || 0;
+          if (n > maxId) maxId = n;
+        }
+      });
+      offset += 5000;
+      if (rows.length < 5000) break;
+    }
+    return maxId;
+  }
+
+  let maxId = await getMaxId();
+  let newId = `L-${String(maxId+1).padStart(5,'0')}`;
 
   const lead = {
     lead_id:             newId,
@@ -638,7 +641,21 @@ async function saveNewLead() {
     create_date:         today,
   };
 
-  const res = await SB.insert('leads', [lead]);
+  // Retry up to 5 times on 409 conflict (race condition — another user got same ID)
+  let res, attempts = 0;
+  while (attempts < 5) {
+    lead.lead_id = newId;
+    res = await SB.insert('leads', [lead]);
+    if (res.ok) break;
+    if (res.status === 409) {
+      attempts++;
+      maxId = await getMaxId();
+      newId = `L-${String(maxId+1).padStart(5,'0')}`;
+    } else {
+      break; // non-409 error — stop retrying
+    }
+  }
+
   if(res.ok) {
     toast('Lead added — '+lead.full_name+' ('+newId+') ✓');
     await loadCounts();
