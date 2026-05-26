@@ -1393,12 +1393,23 @@ async function loadDashboardDetails(){
       filters:['status=in.(Shortlisted,Submitted to Client)','shortlisted_for=not.is.null'],
       limit:50000
     }),
-    // Source channel — fetch distinct counts using select on source_channel only
-    SB.select('leads',{
-      filters:['source_channel=not.is.null'],
-      select:'source_channel',
-      limit:200000
-    })
+    // Source channel — paginate through all leads fetching only source_channel column
+    (async () => {
+      let rows = [], offset = 0;
+      while(true) {
+        const r = await SB.select('leads',{
+          filters:['source_channel=not.is.null'],
+          select:'source_channel',
+          limit:5000,
+          offset
+        });
+        if(!r.data||!r.data.length) break;
+        rows = rows.concat(r.data);
+        offset += 5000;
+        if(r.data.length < 5000) break;
+      }
+      return { data: rows };
+    })()
   ]);
 
   const scMap = {};
