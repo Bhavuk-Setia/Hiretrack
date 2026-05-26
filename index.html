@@ -735,14 +735,14 @@ async function loadCounts() {
   const base = [
     SB.count('leads'),
     SB.count('leads', ['or=(owner.eq.,owner.is.null)']),
-    SB.count('leads', ['status=in.(Shortlisted,Submitted to Client)'])
+    SB.count('leads', ['status=in.(Interested,Shortlisted)'])
   ];
   const recName = SESSION ? encodeURIComponent(SESSION.name) : '';
   const rec = appRole==='recruiter' ? [
     SB.count('leads', [`owner=eq.${recName}`]),
     SB.count('leads', [`owner=eq.${recName}`,
       `or=(last_call_outcome.eq.Connected,last_call_outcome.eq.Callback%20Requested)`]),
-    SB.count('leads', [`owner=eq.${recName}`,`status=in.(Shortlisted,Submitted to Client)`]),
+    SB.count('leads', [`owner=eq.${recName}`,`status=in.(Interested,Shortlisted)`]),
     SB.count('leads', [`owner=eq.${recName}`,`followup_date=not.is.null`]),
   ] : [Promise.resolve(0),Promise.resolve(0),Promise.resolve(0),Promise.resolve(0)];
 
@@ -1369,7 +1369,7 @@ async function loadDashboardDetails(){
     'Submitted to Client','Not Interested','Not Reachable','On Hold'];
 
   // Fetch all counts in parallel — each is a fast HEAD COUNT query
-  const [statusCounts, unassignedRes, recCounts, clientLeads, sourceLeads] = await Promise.all([
+  const [statusCounts, unassignedRes, recCounts, clientLeads, sourceRes] = await Promise.all([
     // Count per status
     Promise.all(allStatuses.map(async s => ({
       status: s,
@@ -1390,13 +1390,14 @@ async function loadDashboardDetails(){
     }))),
     // Client pipeline — shortlisted + submitted to client per client
     SB.select('leads',{
-      filters:['status=in.(Shortlisted,Submitted to Client)','shortlisted_for=not.is.null','shortlisted_for=neq.'],
+      filters:['status=in.(Shortlisted,Submitted to Client)','shortlisted_for=not.is.null'],
       limit:50000
     }),
-    // Source channel counts
+    // Source channel — fetch distinct counts using select on source_channel only
     SB.select('leads',{
-      filters:['source_channel=not.is.null','source_channel=neq.'],
-      limit:50000
+      filters:['source_channel=not.is.null'],
+      select:'source_channel',
+      limit:200000
     })
   ]);
 
@@ -1455,67 +1456,70 @@ async function loadDashboardDetails(){
   </tbody></table></div>
 
   ${(()=>{
-    // ── CLIENT PIPELINE TABLE ─────────────────────────────────────
-    const cRows = clientLeads.data || [];
+    // ── CLIENT PIPELINE TABLE ─────────────────────────────────
+    const cRows = (clientLeads.data||[]).filter(l=>l.shortlisted_for&&l.shortlisted_for.trim()!=='');
+    if(!cRows.length) return '';
     const cMap = {};
-    cRows.forEach(l => {
-      const c = l.shortlisted_for;
-      if(!c) return;
-      if(!cMap[c]) cMap[c] = {shortlisted:0, submitted:0};
+    cRows.forEach(l=>{
+      const c=l.shortlisted_for.trim();
+      if(!cMap[c]) cMap[c]={shortlisted:0,submitted:0};
       if(l.status==='Shortlisted') cMap[c].shortlisted++;
       else if(l.status==='Submitted to Client') cMap[c].submitted++;
     });
-    const clients = Object.keys(cMap).sort();
-    if(!clients.length) return '';
-    return `<div class="card" style="margin-top:12px"><div class="ch"><div class="ch-t">Client Pipeline</div>
-      <span style="font-size:12px;color:#888">${clients.length} active clients</span></div>
+    const clients=Object.keys(cMap).sort();
+    const totalS=clients.reduce((s,c)=>s+cMap[c].shortlisted,0);
+    const totalSC=clients.reduce((s,c)=>s+cMap[c].submitted,0);
+    return `<div class="card" style="margin-top:12px">
+      <div class="ch"><div class="ch-t">Client Pipeline</div>
+        <span style="font-size:12px;color:#888">${clients.length} active clients</span></div>
       <div style="overflow-x:auto"><table class="tbl"><thead><tr>
         <th style="text-align:left">Client</th>
         <th style="text-align:center">Shortlisted</th>
         <th style="text-align:center">Submitted to Client</th>
         <th style="text-align:center">Total</th>
       </tr></thead><tbody>
-      ${clients.map((c,i)=>`<tr style="${i>0?'border-top:1px solid #f0f1f5':''}">
+      ${clients.map((c,i)=>`<tr>
         <td style="font-weight:600">${c}</td>
         <td style="text-align:center;font-family:monospace;color:${cMap[c].shortlisted>0?'#f59e0b':'#ccc'}">${cMap[c].shortlisted||'—'}</td>
         <td style="text-align:center;font-family:monospace;color:${cMap[c].submitted>0?'#8b5cf6':'#ccc'}">${cMap[c].submitted||'—'}</td>
-        <td style="text-align:center;font-family:monospace;font-weight:700;color:#1a1a2e">${cMap[c].shortlisted+cMap[c].submitted}</td>
+        <td style="text-align:center;font-family:monospace;font-weight:700">${cMap[c].shortlisted+cMap[c].submitted}</td>
       </tr>`).join('')}
       <tr style="border-top:2px solid #e8eaf0;background:#f8f9fc">
         <td style="font-weight:700;font-size:12px;color:#555;text-transform:uppercase">Total</td>
-        <td style="text-align:center;font-family:monospace;font-weight:700">${clients.reduce((s,c)=>s+cMap[c].shortlisted,0)}</td>
-        <td style="text-align:center;font-family:monospace;font-weight:700">${clients.reduce((s,c)=>s+cMap[c].submitted,0)}</td>
-        <td style="text-align:center;font-family:monospace;font-weight:700;color:#4361ee">${cRows.length}</td>
+        <td style="text-align:center;font-family:monospace;font-weight:700;color:#f59e0b">${totalS}</td>
+        <td style="text-align:center;font-family:monospace;font-weight:700;color:#8b5cf6">${totalSC}</td>
+        <td style="text-align:center;font-family:monospace;font-weight:700;color:#4361ee">${totalS+totalSC}</td>
       </tr>
       </tbody></table></div></div>`;
   })()}
 
   ${(()=>{
-    // ── SOURCE BAR CHART ──────────────────────────────────────────
-    const sRows = sourceLeads.data || [];
+    // ── SOURCE BAR CHART ──────────────────────────────────
+    // Count in memory from source_channel-only fetch (accurate, no 50k row limit issue)
+    const sRows = sourceRes.data||[];
     const sMap = {};
-    sRows.forEach(l => {
-      const s = l.source_channel || 'Unknown';
-      sMap[s] = (sMap[s]||0) + 1;
+    sRows.forEach(l=>{
+      const s=(l.source_channel||'').trim();
+      if(s) sMap[s]=(sMap[s]||0)+1;
     });
-    const sources = Object.keys(sMap).sort((a,b)=>sMap[b]-sMap[a]);
+    const sources=Object.keys(sMap).sort((a,b)=>sMap[b]-sMap[a]);
     if(!sources.length) return '';
-    const maxVal = Math.max(...sources.map(s=>sMap[s]));
-    const barColours = ['#4361ee','#22c55e','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#f97316','#64748b'];
-    return `<div class="card" style="margin-top:12px"><div class="ch"><div class="ch-t">Leads by Source</div>
-      <span style="font-size:12px;color:#888">${sRows.length.toLocaleString()} total leads</span></div>
+    const maxVal=Math.max(...sources.map(s=>sMap[s]));
+    const cols=['#4361ee','#22c55e','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#f97316','#64748b'];
+    return `<div class="card" style="margin-top:12px">
+      <div class="ch"><div class="ch-t">Leads by Source</div>
+        <span style="font-size:12px;color:#888">${sRows.length.toLocaleString()} leads with source</span></div>
       <div style="padding:14px 16px">
       ${sources.map((s,i)=>{
-        const n = sMap[s];
-        const pct = maxVal>0 ? Math.round(n/maxVal*100) : 0;
-        const col = barColours[i % barColours.length];
+        const n=sMap[s];
+        const pct=maxVal>0?Math.round(n/maxVal*100):0;
+        const col=cols[i%cols.length];
         return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
           <span style="font-size:12px;width:160px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${s}">${s}</span>
           <div style="flex:1;height:22px;background:#f0f1f5;border-radius:4px;overflow:hidden">
-            <div style="height:100%;width:${pct}%;background:${col};border-radius:4px;transition:width .3s;display:flex;align-items:center;justify-content:flex-end;padding-right:6px">
-            </div>
+            <div style="height:100%;width:${pct}%;background:${col};border-radius:4px"></div>
           </div>
-          <span style="font-size:12px;font-family:monospace;width:50px;text-align:right;font-weight:600;color:#1a1a2e">${n.toLocaleString()}</span>
+          <span style="font-size:12px;font-family:monospace;width:55px;text-align:right;font-weight:600">${n.toLocaleString()}</span>
         </div>`;
       }).join('')}
       </div></div>`;
@@ -1536,7 +1540,7 @@ async function reloadDashboard(){
 async function renderDailyReport() {
   document.getElementById('pg-title').textContent = 'Daily Report';
   document.getElementById('tba').innerHTML =
-    '<button class="btn" onclick="renderDailyReport()">↻ Refresh</button>';
+    '<button class="btn" onclick="renderDailyReport()">&#8635; Refresh</button>';
   document.getElementById('asgbar').classList.remove('on');
 
   const today = new Date().toISOString().slice(0,10);
@@ -1563,148 +1567,172 @@ async function loadDailyReport() {
   const fromDate = document.getElementById('dr-from').value;
   const toDate   = document.getElementById('dr-to').value;
   const client   = document.getElementById('dr-client').value;
-
   if(!fromDate || !toDate) return;
 
   document.getElementById('dr-content').innerHTML =
     '<div class="loader-wrap"><div class="spinner"></div></div>';
 
-  const callOutcomes   = ['Connected','Not Reachable',"Didn't Respond",'Callback Requested','Wrong Number'];
-  const allStatuses    = ['New','Interested','Shortlisted','Submitted to Client',
-                          'Not Interested','Not Reachable','Rejected','On Hold','Placed'];
+  const callOutcomes = ['Connected','Not Reachable',"Didn't Respond",'Callback Requested','Wrong Number','Not Called'];
+  const allStatuses  = ['Interested','Shortlisted','Submitted to Client','Placed',
+                        'Not Interested','Not Reachable','Rejected','On Hold','New'];
 
-  // Fetch call logs for date range
-  // If client filter is set, we need lead_ids shortlisted for that client
-  let leadIdFilter = '';
+  // Fetch call logs for date range — all at once
+  const logFilters = [
+    'call_date=gte.' + fromDate,
+    'call_date=lte.' + toDate
+  ];
+
+  // If client selected: fetch matching lead_ids from call_log joined via leads
+  // We join by fetching leads with shortlisted_for=client first
+  let allowedLeadIds = null;
   if(client) {
     const leadsRes = await SB.select('leads', {
-      filters: [`shortlisted_for=eq.${encodeURIComponent(client)}`],
-      limit: 10000
+      filters: ['shortlisted_for=eq.' + encodeURIComponent(client)],
+      limit: 50000
     });
-    if(leadsRes.data && leadsRes.data.length) {
-      const ids = leadsRes.data.map(l => l.lead_id).join(',');
-      leadIdFilter = `lead_id=in.(${ids})`;
-    } else {
-      // No leads for this client — show empty
+    if(!leadsRes.data || !leadsRes.data.length) {
       document.getElementById('dr-content').innerHTML =
-        '<div style="padding:40px;text-align:center;color:#aaa">No leads found for this client.</div>';
+        '<div style="padding:40px;text-align:center;color:#aaa">No leads found shortlisted for <strong>' + client + '</strong>.</div>';
       return;
     }
+    allowedLeadIds = new Set(leadsRes.data.map(l => l.lead_id));
   }
 
-  // Build filters for call_log query
-  const logFilters = [
-    `call_date=gte.${fromDate}`,
-    `call_date=lte.${toDate}`
-  ];
-  if(leadIdFilter) logFilters.push(leadIdFilter);
+  // Fetch all call logs in range
+  let allLogs = [], offset = 0;
+  while(true) {
+    const res = await SB.select('call_log', {
+      filters: logFilters,
+      order: 'call_date.asc',
+      limit: 5000,
+      offset
+    });
+    if(!res.data || !res.data.length) break;
+    allLogs = allLogs.concat(res.data);
+    offset += 5000;
+    if(res.data.length < 5000) break;
+  }
 
-  const logRes = await SB.select('call_log', {
-    filters: logFilters,
-    limit: 50000,
-    order: 'call_date.asc'
-  });
+  // Apply client filter in memory if needed
+  if(allowedLeadIds) {
+    allLogs = allLogs.filter(log => allowedLeadIds.has(log.lead_id));
+  }
 
-  if(!logRes.data || !logRes.data.length) {
+  if(!allLogs.length) {
     document.getElementById('dr-content').innerHTML =
-      '<div style="padding:40px;text-align:center;color:#aaa">No calls found for this period.</div>';
+      '<div style="padding:40px;text-align:center;color:#aaa">No calls found for the selected period' +
+      (client ? ' and client <strong>' + client + '</strong>' : '') + '.</div>';
     return;
   }
 
-  const logs = logRes.data;
-
-  // Group by date → recruiter
-  const byDate = {};
-  logs.forEach(log => {
-    const d = log.call_date;
+  // Aggregate totals per recruiter across entire date range
+  const byRec = {};
+  allLogs.forEach(log => {
     const r = log.recruiter_name || 'Unknown';
-    if(!byDate[d]) byDate[d] = {};
-    if(!byDate[d][r]) byDate[d][r] = { outcomes:{}, statuses:{}, total:0 };
-    byDate[d][r].total++;
-    const o = log.call_outcome || 'Unknown';
-    byDate[d][r].outcomes[o] = (byDate[d][r].outcomes[o]||0) + 1;
+    if(!byRec[r]) byRec[r] = { total: 0, outcomes: {}, statuses: {} };
+    byRec[r].total++;
+    const o = log.call_outcome || 'Not Called';
+    byRec[r].outcomes[o] = (byRec[r].outcomes[o] || 0) + 1;
     const s = log.status_after_call || '';
-    if(s) byDate[d][r].statuses[s] = (byDate[d][r].statuses[s]||0) + 1;
+    if(s) byRec[r].statuses[s] = (byRec[r].statuses[s] || 0) + 1;
   });
 
-  const outcomeBg = {
-    'Connected':'#dcfce7','Not Reachable':'#fee2e2',
-    "Didn't Respond":'#fef9c3','Callback Requested':'#dbeafe',
-    'Wrong Number':'#f3e8ff'
-  };
-  const outcomeTxt = {
-    'Connected':'#166534','Not Reachable':'#991b1b',
-    "Didn't Respond":'#854d0e','Callback Requested':'#1e40af',
-    'Wrong Number':'#6b21a8'
-  };
-  const statusBg = {
-    'Interested':'#dcfce7','Shortlisted':'#fef3c7',
-    'Submitted to Client':'#ede9fe','Not Interested':'#fee2e2',
-    'Not Reachable':'#fee2e2','Placed':'#d1fae5','New':'#f0f1f5',
-    'Rejected':'#dbeafe','On Hold':'#f1f5f9'
-  };
+  const recruiters = Object.keys(byRec).sort();
+  const totalCalls = allLogs.length;
 
-  const sortedDates = Object.keys(byDate).sort().reverse();
+  // Date range label
+  const dateLabel = fromDate === toDate
+    ? formatDate(fromDate)
+    : formatDate(fromDate) + ' — ' + formatDate(toDate);
 
-  let html = '';
-  sortedDates.forEach(date => {
-    const dayData = byDate[date];
-    const recruiters = Object.keys(dayData).sort();
+  // ── CALL OUTCOME TABLE ──────────────────────────────
+  let outcomeHtml = `
+  <div class="card" style="margin-bottom:16px">
+    <div class="ch" style="border-bottom:1px solid #f0f1f5;padding-bottom:10px;margin-bottom:0">
+      <div class="ch-t">Call Outcomes</div>
+      <span style="font-size:12px;color:#888">${dateLabel} &nbsp;·&nbsp; ${totalCalls.toLocaleString()} total calls${client ? ' &nbsp;·&nbsp; Client: <strong>' + client + '</strong>' : ''}</span>
+    </div>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;min-width:600px">
+      <thead>
+        <tr style="background:#f8f9fc">
+          <th style="text-align:left;padding:9px 14px;font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Recruiter</th>
+          <th style="text-align:center;padding:9px 14px;font-size:11px;color:#4361ee;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Total Calls</th>
+          ${callOutcomes.map(o=>`<th style="text-align:center;padding:9px 14px;font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.05em">${o}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>`;
 
-    // Day total
-    const dayTotal = recruiters.reduce((sum,r) => sum+dayData[r].total, 0);
-
-    html += `
-    <div class="card" style="margin-bottom:16px">
-      <div class="ch" style="border-bottom:1px solid #f0f1f5;padding-bottom:12px;margin-bottom:0">
-        <div class="ch-t" style="font-size:15px">${formatDate(date)}</div>
-        <span style="font-size:12px;color:#888;font-weight:600">${dayTotal} total calls</span>
-      </div>
-      <table style="width:100%;border-collapse:collapse">
-        <thead>
-          <tr style="background:#f8f9fc">
-            <th style="text-align:left;padding:9px 14px;font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.05em;width:160px">Recruiter</th>
-            <th style="text-align:center;padding:9px 14px;font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.05em;width:60px">Calls</th>
-            <th style="text-align:left;padding:9px 14px;font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Call Outcomes</th>
-            <th style="text-align:left;padding:9px 14px;font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Status Marked</th>
-          </tr>
-        </thead>
-        <tbody>`;
-
-    recruiters.forEach((r, idx) => {
-      const data = dayData[r];
-      const borderTop = idx > 0 ? 'border-top:1px solid #f0f1f5' : '';
-
-      // Outcome pills
-      const outcomePills = Object.entries(data.outcomes)
-        .sort((a,b) => b[1]-a[1])
-        .map(([o,n]) => `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;background:${outcomeBg[o]||'#f0f1f5'};color:${outcomeTxt[o]||'#555'};margin:2px">${o} <span style="opacity:.7">${n}</span></span>`)
-        .join('');
-
-      // Status pills
-      const statusPills = Object.entries(data.statuses)
-        .sort((a,b) => b[1]-a[1])
-        .map(([s,n]) => `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;background:${statusBg[s]||'#f0f1f5'};color:#444;margin:2px">${s} <span style="opacity:.7">${n}</span></span>`)
-        .join('') || '<span style="font-size:11px;color:#ccc">—</span>';
-
-      html += `
-          <tr style="${borderTop}">
-            <td style="padding:10px 14px;font-size:13px;font-weight:600;color:#1a1a2e">${r}</td>
-            <td style="padding:10px 14px;text-align:center;font-size:15px;font-weight:700;color:#4361ee">${data.total}</td>
-            <td style="padding:10px 14px">${outcomePills}</td>
-            <td style="padding:10px 14px">${statusPills}</td>
-          </tr>`;
-    });
-
-    html += `</tbody></table></div>`;
+  recruiters.forEach((r, idx) => {
+    const d = byRec[r];
+    const border = idx > 0 ? 'border-top:1px solid #f0f1f5' : '';
+    outcomeHtml += `<tr style="${border}">
+      <td style="padding:10px 14px;font-size:13px;font-weight:600;color:#1a1a2e">${r}</td>
+      <td style="padding:10px 14px;text-align:center;font-size:15px;font-weight:700;color:#4361ee">${d.total}</td>
+      ${callOutcomes.map(o => {
+        const n = d.outcomes[o] || 0;
+        return `<td style="padding:10px 14px;text-align:center;font-size:13px;color:${n>0?'#1a1a2e':'#ccc'}">${n > 0 ? n : '—'}</td>`;
+      }).join('')}
+    </tr>`;
   });
 
-  document.getElementById('dr-content').innerHTML = html;
+  // Totals row
+  outcomeHtml += `<tr style="border-top:2px solid #e8eaf0;background:#f8f9fc">
+    <td style="padding:10px 14px;font-size:12px;font-weight:700;color:#555;text-transform:uppercase">Total</td>
+    <td style="padding:10px 14px;text-align:center;font-size:14px;font-weight:700;color:#4361ee">${totalCalls}</td>
+    ${callOutcomes.map(o => {
+      const n = recruiters.reduce((s,r) => s+(byRec[r].outcomes[o]||0), 0);
+      return `<td style="padding:10px 14px;text-align:center;font-size:13px;font-weight:600;color:${n>0?'#1a1a2e':'#ccc'}">${n > 0 ? n : '—'}</td>`;
+    }).join('')}
+  </tr>`;
+
+  outcomeHtml += `</tbody></table></div></div>`;
+
+  // ── STATUS TABLE ──────────────────────────────────────
+  let statusHtml = `
+  <div class="card" style="margin-bottom:16px">
+    <div class="ch" style="border-bottom:1px solid #f0f1f5;padding-bottom:10px;margin-bottom:0">
+      <div class="ch-t">Status Marked</div>
+    </div>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;min-width:600px">
+      <thead>
+        <tr style="background:#f8f9fc">
+          <th style="text-align:left;padding:9px 14px;font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Recruiter</th>
+          ${allStatuses.map(s=>`<th style="text-align:center;padding:9px 14px;font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.05em">${s}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>`;
+
+  recruiters.forEach((r, idx) => {
+    const d = byRec[r];
+    const border = idx > 0 ? 'border-top:1px solid #f0f1f5' : '';
+    statusHtml += `<tr style="${border}">
+      <td style="padding:10px 14px;font-size:13px;font-weight:600;color:#1a1a2e">${r}</td>
+      ${allStatuses.map(s => {
+        const n = d.statuses[s] || 0;
+        return `<td style="padding:10px 14px;text-align:center;font-size:13px;color:${n>0?'#1a1a2e':'#ccc'}">${n > 0 ? n : '—'}</td>`;
+      }).join('')}
+    </tr>`;
+  });
+
+  // Totals row
+  statusHtml += `<tr style="border-top:2px solid #e8eaf0;background:#f8f9fc">
+    <td style="padding:10px 14px;font-size:12px;font-weight:700;color:#555;text-transform:uppercase">Total</td>
+    ${allStatuses.map(s => {
+      const n = recruiters.reduce((sum,r) => sum+(byRec[r].statuses[s]||0), 0);
+      return `<td style="padding:10px 14px;text-align:center;font-size:13px;font-weight:600;color:${n>0?'#1a1a2e':'#ccc'}">${n > 0 ? n : '—'}</td>`;
+    }).join('')}
+  </tr>`;
+
+  statusHtml += `</tbody></table></div></div>`;
+
+  document.getElementById('dr-content').innerHTML = outcomeHtml + statusHtml;
 }
 
 function formatDate(d) {
   const dt = new Date(d + 'T00:00:00');
-  return dt.toLocaleDateString('en-IN', {weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  return dt.toLocaleDateString('en-IN', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
 }
 
 // ════════════════════════════════════════════════════
@@ -2205,7 +2233,7 @@ async function renderRecruiterDashboard() {
     ]),
     SB.count('leads', [
       `owner=eq.${encodeURIComponent(name)}`,
-      `status=in.(Shortlisted,Submitted to Client)`
+      `status=in.(Interested,Shortlisted)`
     ]),
     SB.count('leads', [
       `owner=eq.${encodeURIComponent(name)}`,
@@ -2444,7 +2472,7 @@ async function viewRecruiterDashboard(name) {
   const [total, called, pipeline, followups] = await Promise.all([
     SB.count('leads', [`owner=eq.${encodeURIComponent(name)}`]),
     SB.count('leads', [`owner=eq.${encodeURIComponent(name)}`, `or=(last_call_outcome.eq.Connected,last_call_outcome.eq.Callback Requested)`]),
-    SB.count('leads', [`owner=eq.${encodeURIComponent(name)}`, `status=in.(Shortlisted,Submitted to Client)`]),
+    SB.count('leads', [`owner=eq.${encodeURIComponent(name)}`, `status=in.(Interested,Shortlisted)`]),
     SB.count('leads', [`owner=eq.${encodeURIComponent(name)}`, `followup_date=not.is.null`]),
   ]);
 
