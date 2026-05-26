@@ -147,6 +147,7 @@ textarea.fi-full{resize:vertical;min-height:64px}
 .toast.err{background:#ef4444}
 .pg-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:#f0f4ff;border-radius:8px;margin-bottom:10px;font-size:12px;color:#4361ee}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="toast" id="toast"></div>
@@ -556,6 +557,67 @@ async function checkPhoneLive() {
   }
 }
 
+// ── EXCEL DOWNLOAD ───────────────────────────────────────────────
+async function downloadLeads(mode) {
+  const btn = document.getElementById('dl-btn');
+  if(btn){ btn.textContent='⏳ Preparing…'; btn.disabled=true; }
+
+  try {
+    let rows = [];
+
+    if(mode === 'filtered') {
+      const filters = buildFilters();
+      let offset = 0, done = false;
+      while(!done) {
+        const res = await SB.select('leads', {filters, order:'create_date.desc', limit:5000, offset});
+        if(res.data && res.data.length) {
+          rows = rows.concat(res.data);
+          offset += 5000;
+          if(res.data.length < 5000) done = true;
+        } else { done = true; }
+      }
+    } else {
+      let offset = 0, done = false;
+      while(!done) {
+        const r = await fetch(
+          `${SB_URL}/rest/v1/leads?select=*&limit=5000&offset=${offset}`,
+          {headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Range-Unit':'items'}}
+        );
+        const data = await r.json();
+        if(data && data.length){ rows = rows.concat(data); offset+=5000; if(data.length<5000) done=true; }
+        else done=true;
+      }
+    }
+
+    if(!rows.length){ alert('No leads to download.'); return; }
+
+    const cols = ['lead_id','full_name','phone_primary','email','gender','current_city','state',
+      'current_company','current_designation','standard_role','naukri_job_title',
+      'industry','department','process_type','experience_yrs','current_ctc_lpa',
+      'source_channel','status','owner','last_call_outcome','last_call_notes',
+      'english_proficiency','shortlisted_for','create_date','date_applied',
+      'last_call_date','followup_date'];
+
+    const wsData = [cols];
+    rows.forEach(r => wsData.push(cols.map(c => r[c] ?? '')));
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Leads');
+
+    const today = new Date().toISOString().slice(0,10);
+    const filename = mode==='filtered'
+      ? `HireTrack_Filtered_${today}.xlsx`
+      : `HireTrack_AllLeads_${today}.xlsx`;
+
+    XLSX.writeFile(wb, filename);
+  } catch(e) {
+    alert('Download failed: ' + e.message);
+  } finally {
+    if(btn){ btn.textContent='⬇ Download'; btn.disabled=false; }
+  }
+}
+
 async function saveNewLead() {
   const btn = document.getElementById('al-save-btn');
   const err = document.getElementById('al-err');
@@ -857,7 +919,9 @@ function renderLeadsPage(title, assignMode=false) {
   _pgAssign = assignMode;
   document.getElementById('pg-title').textContent = title;
   document.getElementById('tba').innerHTML =
-    `<button class="btn" onclick="reloadLeads()">↻ Refresh</button>`;
+    `<button class="btn" onclick="reloadLeads()">↻ Refresh</button>
+    ${appRole==='manager'?`<button class="btn" id="dl-btn" onclick="downloadLeads('filtered')" style="background:#f0fdf4;border-color:#86efac;color:#166534">⬇ Filtered</button>
+    <button class="btn" onclick="downloadLeads('all')" style="background:#eff6ff;border-color:#93c5fd;color:#1e40af">⬇ All Leads</button>`:''}`;
   selLeads = new Set();
   updateAsgBar();
 
@@ -2030,7 +2094,9 @@ function renderRecruiterLeads(name) {
   if(!name) { nav('dashboard'); return; }
   document.getElementById('pg-title').textContent = name + ' — My Leads';
   document.getElementById('tba').innerHTML = `
-    <button class="btn" onclick="nav('rec-view')">← Back to ${name}</button>`;
+    <button class="btn" onclick="nav('rec-view')">← Back to ${name}</button>
+    ${appRole==='manager'?`<button class="btn" id="dl-btn" onclick="downloadLeads('filtered')" style="background:#f0fdf4;border-color:#86efac;color:#166534">⬇ Filtered</button>
+    <button class="btn" onclick="downloadLeads('all')" style="background:#eff6ff;border-color:#93c5fd;color:#1e40af">⬇ All Leads</button>`:''}`;
   document.getElementById('asgbar').classList.remove('on');
   selLeads = new Set();
   navRender();
