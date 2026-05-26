@@ -735,14 +735,14 @@ async function loadCounts() {
   const base = [
     SB.count('leads'),
     SB.count('leads', ['or=(owner.eq.,owner.is.null)']),
-    SB.count('leads', ['status=in.(Interested,Shortlisted)'])
+    SB.count('leads', ['status=in.(Shortlisted,Submitted to Client)'])
   ];
   const recName = SESSION ? encodeURIComponent(SESSION.name) : '';
   const rec = appRole==='recruiter' ? [
     SB.count('leads', [`owner=eq.${recName}`]),
     SB.count('leads', [`owner=eq.${recName}`,
       `or=(last_call_outcome.eq.Connected,last_call_outcome.eq.Callback%20Requested)`]),
-    SB.count('leads', [`owner=eq.${recName}`,`status=in.(Interested,Shortlisted)`]),
+    SB.count('leads', [`owner=eq.${recName}`,`status=in.(Shortlisted,Submitted to Client)`]),
     SB.count('leads', [`owner=eq.${recName}`,`followup_date=not.is.null`]),
   ] : [Promise.resolve(0),Promise.resolve(0),Promise.resolve(0),Promise.resolve(0)];
 
@@ -2233,7 +2233,7 @@ async function renderRecruiterDashboard() {
     ]),
     SB.count('leads', [
       `owner=eq.${encodeURIComponent(name)}`,
-      `status=in.(Interested,Shortlisted)`
+      `status=in.(Shortlisted,Submitted to Client)`
     ]),
     SB.count('leads', [
       `owner=eq.${encodeURIComponent(name)}`,
@@ -2472,7 +2472,7 @@ async function viewRecruiterDashboard(name) {
   const [total, called, pipeline, followups] = await Promise.all([
     SB.count('leads', [`owner=eq.${encodeURIComponent(name)}`]),
     SB.count('leads', [`owner=eq.${encodeURIComponent(name)}`, `or=(last_call_outcome.eq.Connected,last_call_outcome.eq.Callback Requested)`]),
-    SB.count('leads', [`owner=eq.${encodeURIComponent(name)}`, `status=in.(Interested,Shortlisted)`]),
+    SB.count('leads', [`owner=eq.${encodeURIComponent(name)}`, `status=in.(Shortlisted,Submitted to Client)`]),
     SB.count('leads', [`owner=eq.${encodeURIComponent(name)}`, `followup_date=not.is.null`]),
   ]);
 
