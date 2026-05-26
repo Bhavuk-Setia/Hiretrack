@@ -918,10 +918,12 @@ function renderLeadsPage(title, assignMode=false) {
   _pgTitle  = title;
   _pgAssign = assignMode;
   document.getElementById('pg-title').textContent = title;
+  const dlBtns = appRole==='manager'
+    ? '<button class="btn" id="dl-btn" onclick="downloadLeads('filtered')" style="background:#f0fdf4;border-color:#86efac;color:#166534">⬇ Filtered</button>'
+    + '<button class="btn" onclick="downloadLeads('all')" style="background:#eff6ff;border-color:#93c5fd;color:#1e40af">⬇ All Leads</button>'
+    : '';
   document.getElementById('tba').innerHTML =
-    `<button class="btn" onclick="reloadLeads()">↻ Refresh</button>
-    ${appRole==='manager'?`<button class="btn" id="dl-btn" onclick="downloadLeads('filtered')" style="background:#f0fdf4;border-color:#86efac;color:#166534">⬇ Filtered</button>
-    <button class="btn" onclick="downloadLeads('all')" style="background:#eff6ff;border-color:#93c5fd;color:#1e40af">⬇ All Leads</button>`:''}`;
+    '<button class="btn" onclick="reloadLeads()">↻ Refresh</button>' + dlBtns;
   selLeads = new Set();
   updateAsgBar();
 
@@ -2093,10 +2095,12 @@ async function renderRecruiterDashboard() {
 function renderRecruiterLeads(name) {
   if(!name) { nav('dashboard'); return; }
   document.getElementById('pg-title').textContent = name + ' — My Leads';
-  document.getElementById('tba').innerHTML = `
-    <button class="btn" onclick="nav('rec-view')">← Back to ${name}</button>
-    ${appRole==='manager'?`<button class="btn" id="dl-btn" onclick="downloadLeads('filtered')" style="background:#f0fdf4;border-color:#86efac;color:#166534">⬇ Filtered</button>
-    <button class="btn" onclick="downloadLeads('all')" style="background:#eff6ff;border-color:#93c5fd;color:#1e40af">⬇ All Leads</button>`:''}`;
+  const dlBtns2 = appRole==='manager'
+    ? '<button class="btn" id="dl-btn" onclick="downloadLeads('filtered')" style="background:#f0fdf4;border-color:#86efac;color:#166534">⬇ Filtered</button>'
+    + '<button class="btn" onclick="downloadLeads('all')" style="background:#eff6ff;border-color:#93c5fd;color:#1e40af">⬇ All Leads</button>'
+    : '';
+  document.getElementById('tba').innerHTML =
+    `<button class="btn" onclick="nav('rec-view')">← Back to ${name}</button>` + dlBtns2;
   document.getElementById('asgbar').classList.remove('on');
   selLeads = new Set();
   navRender();
