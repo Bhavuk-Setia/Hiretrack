@@ -201,6 +201,10 @@ textarea.fi-full{resize:vertical;min-height:64px}
       </select>
       <button class="btn pri" id="asg-btn" onclick="doAssign()" disabled>Confirm</button>
       <button class="btn" onclick="clearSel()">Cancel</button>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#92400e;cursor:pointer;margin-left:4px">
+        <input type="checkbox" id="asg-update-date" style="width:14px;height:14px;cursor:pointer">
+        Update create date to today
+      </label>
       <span style="font-size:11px;color:#b45309" id="asg-hint"></span>
     </div>
     <div class="content" id="content">
@@ -1244,6 +1248,9 @@ async function doAssign(){
   const btn=document.getElementById('asg-btn');
   btn.disabled=true;btn.textContent='Saving…';
 
+  const updateDate = document.getElementById('asg-update-date')?.checked || false;
+  const today = new Date().toISOString().slice(0,10);
+
   let updated=0;
   const BATCH=100; // Supabase handles 100 IDs in IN clause fine
 
@@ -1251,8 +1258,9 @@ async function doAssign(){
     // Bulk unassign — set owner to empty string
     for(let i=0;i<ids.length;i+=BATCH){
       const batch=ids.slice(i,i+BATCH);
-      const r=await SB.update('leads',{owner:''},
-        [`lead_id=in.(${batch.join(',')})`]);
+      const payload = {owner:''};
+      if(updateDate) payload.create_date = today;
+      await SB.update('leads', payload, [`lead_id=in.(${batch.join(',')})`]);
       updated+=batch.length;
       btn.textContent=`Saving… ${updated}/${ids.length}`;
     }
@@ -1260,11 +1268,11 @@ async function doAssign(){
     // Round-robin across recruiters
     for(let i=0;i<ids.length;i+=BATCH){
       const batch=ids.slice(i,i+BATCH);
-      // Assign each in batch to recruiter based on index
-      const updates=batch.map((id,j)=>
-        SB.update('leads',{owner:RECRUITERS[(i+j)%RECRUITERS.length]},
-          [`lead_id=eq.${id}`])
-      );
+      const updates=batch.map((id,j)=>{
+        const payload = {owner:RECRUITERS[(i+j)%RECRUITERS.length]};
+        if(updateDate) payload.create_date = today;
+        return SB.update('leads', payload, [`lead_id=eq.${id}`]);
+      });
       await Promise.all(updates);
       updated+=batch.length;
       btn.textContent=`Saving… ${updated}/${ids.length}`;
@@ -1273,8 +1281,9 @@ async function doAssign(){
     // Assign all to one recruiter in batches
     for(let i=0;i<ids.length;i+=BATCH){
       const batch=ids.slice(i,i+BATCH);
-      await SB.update('leads',{owner:rec},
-        [`lead_id=in.(${batch.join(',')})`]);
+      const payload = {owner:rec};
+      if(updateDate) payload.create_date = today;
+      await SB.update('leads', payload, [`lead_id=in.(${batch.join(',')})`]);
       updated+=batch.length;
       btn.textContent=`Saving… ${updated}/${ids.length}`;
     }
