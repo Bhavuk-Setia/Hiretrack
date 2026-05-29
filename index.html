@@ -981,7 +981,7 @@ function renderLeadsPage(title, assignMode=false) {
         <th><input type="checkbox" class="chk" id="chk-all" onchange="selAll(this)"></th>
         <th>Name</th><th>Standard Role</th><th>Naukri Title</th><th>Industry</th>
         <th>Current Role</th><th>Dept</th><th>City</th><th>Exp</th><th>CTC</th>
-        <th>Status</th><th>Owner</th><th>Source</th><th>Created</th>
+        <th>Status</th><th>Owner</th><th>Source</th><th>Last Call</th><th>Created</th>
       </tr></thead>
       <tbody id="leads-tbody">
         <tr><td colspan="14" style="padding:32px;text-align:center">
@@ -1036,6 +1036,7 @@ function renderLeadsTable() {
     <td onclick="navD('${l.lead_id}')"><span class="badge ${SC[l.status]||'b-new'}">${l.status}</span></td>
     <td onclick="navD('${l.lead_id}')"><span class="${l.owner?'opill':'opill u'}">${l.owner||'Unassigned'}</span></td>
     <td onclick="navD('${l.lead_id}')" style="font-size:11px;color:#888">${l.source_channel||'—'}</td>
+    <td onclick="navD('${l.lead_id}')" style="font-size:11px;color:#94a3b8;font-family:monospace">${l.last_call_date||'—'}</td>
     <td onclick="navD('${l.lead_id}')" style="font-size:11px;color:#94a3b8;font-family:monospace">${l.create_date||'—'}</td>
   </tr>`).join('');
 
