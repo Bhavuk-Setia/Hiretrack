@@ -2003,6 +2003,19 @@ async function doDetailReassign(lid){
   }
 }
 
+async function updateCreateDate(leadId, newDate) {
+  if(!newDate) return;
+  const res = await SB.update('leads', {create_date: newDate}, [`lead_id=eq.${leadId}`]);
+  if(res.ok) {
+    // Update local lead object so it stays in sync
+    const l = LEADS.find(x => x.lead_id === leadId);
+    if(l) l.create_date = newDate;
+    toast('Created date updated ✓');
+  } else {
+    toast('Failed to update date ✗');
+  }
+}
+
 async function renderDetail(){
   // Fetch fresh lead data from Supabase
   const res = await SB.select('leads',{
@@ -2050,7 +2063,13 @@ async function renderDetail(){
       <div class="hero-owner-row">
         <span>Owner:</span>
         <span class="${l.owner?'opill':'opill u'}">${l.owner||'Unassigned'}</span>
-        <span style="margin-left:auto">Source: ${l.source_channel} · ${l.create_date}</span>
+        <span style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:#888">
+          Source: ${l.source_channel} &nbsp;·&nbsp; Created:
+          <input type="date" value="${l.create_date||''}"
+            style="font-size:12px;font-family:inherit;border:1px solid #e0e0e0;border-radius:6px;padding:2px 6px;color:#555;background:#fafafa;cursor:pointer"
+            onchange="updateCreateDate('${l.lead_id}', this.value)"
+            title="Click to change created date">
+        </span>
       </div>
     </div>
 
